@@ -6,6 +6,8 @@ import asyncio
 import json
 import os
 import shutil
+import subprocess
+import psutil
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
@@ -193,7 +195,7 @@ Bot Management:
 • `/syncfollows` - Sync mutual following between all bots
 
 System Management:
-• `/update` - Pull latest code from GitHub and restart bot
+• `/update` - Interactive update menu (update & restart, restart only, restart system, check status)
 • `/restart` - Restart bot without updating code
 
 🎯 Engagement Commands:
@@ -1830,41 +1832,31 @@ Bot Status:
             await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
-        try:
-            await update.message.reply_text("🔄 Updating bot from GitHub...")
+        # Create update options keyboard
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "🔄 Update & Restart Bot", callback_data="update_restart_bot"
+                ),
+                InlineKeyboardButton(
+                    "🔄 Restart Bot Only", callback_data="restart_bot_only"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "🔄 Restart System", callback_data="restart_system"
+                ),
+                InlineKeyboardButton("📋 Check Status", callback_data="check_status"),
+            ],
+            [InlineKeyboardButton("❌ Cancel", callback_data="cancel_update")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-            # Pull latest changes
-            import subprocess
-
-            result = subprocess.run(
-                ["git", "pull", "origin", "main"],
-                capture_output=True,
-                text=True,
-                cwd="/root/Twitter-bot",
-            )
-
-            if result.returncode == 0:
-                if "Already up to date" in result.stdout:
-                    await update.message.reply_text("✅ Bot is already up to date!")
-                else:
-                    await update.message.reply_text(
-                        f"✅ Update successful!\n\n"
-                        f"Changes:\n```\n{result.stdout[:500]}\n```\n"
-                        f"🔄 Restarting bot...",
-                        parse_mode="Markdown",
-                    )
-
-                    # Restart the bot
-                    await self.restart_bot()
-
-            else:
-                await update.message.reply_text(
-                    f"❌ Update failed:\n```\n{result.stderr}\n```",
-                    parse_mode="Markdown",
-                )
-
-        except Exception as e:
-            await update.message.reply_text(f"❌ Error during update: {str(e)}")
+        await update.message.reply_text(
+            "🔄 **Update & Restart Options**\n\nChoose what you want to do:",
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
 
     async def restart_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /restart command to restart bot without updating"""
@@ -1887,12 +1879,115 @@ Bot Status:
             await self.stop_system()
 
             # Start new process
-            import subprocess
-
             subprocess.Popen(["python", "main.py"], cwd="/root/Twitter-bot")
 
         except Exception as e:
             self.logger.error(f"Error restarting bot: {e}")
+
+    async def update_and_restart_bot(self):
+        """Update code from GitHub and restart bot"""
+        try:
+            # Pull latest changes
+            result = subprocess.run(
+                ["git", "pull", "origin", "main"],
+                capture_output=True,
+                text=True,
+                cwd="/root/Twitter-bot",
+            )
+
+            if result.returncode == 0:
+                if "Already up to date" in result.stdout:
+                    return True, "Bot is already up to date!", result.stdout
+                else:
+                    # Restart the bot
+                    await self.restart_bot()
+                    return (
+                        True,
+                        "Bot updated and restarted successfully!",
+                        result.stdout,
+                    )
+            else:
+                return False, f"Git pull failed: {result.stderr}", result.stderr
+
+        except Exception as e:
+            return False, f"Error during update: {str(e)}", ""
+
+    async def restart_system_service(self):
+        """Restart the webhook listener system service"""
+        try:
+            # Restart webhook listener service
+            result = subprocess.run(
+                ["sudo", "systemctl", "restart", "webhook-listener.service"],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0:
+                return True, "Webhook listener service restarted successfully!", ""
+            else:
+                return (
+                    False,
+                    f"Failed to restart service: {result.stderr}",
+                    result.stderr,
+                )
+
+        except Exception as e:
+            return False, f"Error restarting service: {str(e)}", ""
+
+    async def check_system_status(self):
+        """Check status of bot and services"""
+        try:
+            # Check bot process
+            bot_running = False
+            bot_pid = None
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                try:
+                    if proc.info["name"] == "python" and "main.py" in " ".join(
+                        proc.info["cmdline"]
+                    ):
+                        bot_running = True
+                        bot_pid = proc.info["pid"]
+                        break
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+
+            # Check webhook service status
+            service_result = subprocess.run(
+                ["sudo", "systemctl", "is-active", "webhook-listener.service"],
+                capture_output=True,
+                text=True,
+            )
+            service_running = service_result.stdout.strip() == "active"
+
+            # Check webhook health
+            try:
+                import requests
+
+                health_response = requests.get(
+                    "http://localhost:8080/health", timeout=5
+                )
+                webhook_healthy = health_response.status_code == 200
+            except Exception:
+                webhook_healthy = False
+
+            status_text = f"""
+📊 **System Status**
+
+🤖 **Bot Process:**
+• Status: {"🟢 Running" if bot_running else "🔴 Stopped"}
+• PID: {bot_pid if bot_pid else "N/A"}
+
+🔄 **Webhook Service:**
+• Status: {"🟢 Active" if service_running else "🔴 Inactive"}
+• Health: {"🟢 Healthy" if webhook_healthy else "🔴 Unhealthy"}
+
+📅 **Last Check:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            """
+
+            return status_text
+
+        except Exception as e:
+            return f"❌ Error checking status: {str(e)}"
 
     async def handle_callback_query(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -1931,6 +2026,14 @@ Bot Status:
             await self._handle_engagement_action(query, data)
         elif data.startswith("system_"):
             await self._handle_system_action(query, data)
+        elif data.startswith("update_"):
+            await self._handle_update_action(query, data)
+        elif data.startswith("restart_"):
+            await self._handle_restart_action(query, data)
+        elif data == "check_status":
+            await self._handle_status_check(query)
+        elif data == "cancel_update":
+            await query.edit_message_text("❌ Update operation cancelled.")
 
     async def _show_main_menu(self, query):
         """Show the main menu"""
@@ -2361,6 +2464,67 @@ View recent system activity and logs:
                 "Use `/restart` to restart the bot without updating code.",
                 parse_mode="Markdown",
             )
+
+    async def _handle_update_action(self, query, data):
+        """Handle update-related actions"""
+        if data == "update_restart_bot":
+            await query.edit_message_text(
+                "🔄 Updating bot from GitHub and restarting..."
+            )
+
+            success, message, output = await self.update_and_restart_bot()
+
+            if success:
+                if "already up to date" in message.lower():
+                    response_text = (
+                        "✅ **Update Complete**\n\nBot is already up to date!"
+                    )
+                else:
+                    response_text = f"✅ **Update Complete**\n\n{message}\n\n**Changes:**\n```\n{output[:300]}\n```"
+            else:
+                response_text = f"❌ **Update Failed**\n\n{message}"
+
+            await query.edit_message_text(response_text, parse_mode="Markdown")
+
+    async def _handle_restart_action(self, query, data):
+        """Handle restart-related actions"""
+        if data == "restart_bot_only":
+            await query.edit_message_text("🔄 Restarting bot...")
+
+            try:
+                await self.restart_bot()
+                await query.edit_message_text("✅ Bot restarted successfully!")
+            except Exception as e:
+                await query.edit_message_text(f"❌ Error restarting bot: {str(e)}")
+
+        elif data == "restart_system":
+            await query.edit_message_text("🔄 Restarting webhook service...")
+
+            success, message, output = await self.restart_system_service()
+
+            if success:
+                response_text = f"✅ **System Restart Complete**\n\n{message}"
+            else:
+                response_text = f"❌ **System Restart Failed**\n\n{message}"
+
+            await query.edit_message_text(response_text, parse_mode="Markdown")
+
+    async def _handle_status_check(self, query):
+        """Handle status check action"""
+        await query.edit_message_text("📊 Checking system status...")
+
+        status_text = await self.check_system_status()
+
+        # Add refresh button
+        keyboard = [
+            [InlineKeyboardButton("🔄 Refresh Status", callback_data="check_status")],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            status_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
 
 
 async def main():
