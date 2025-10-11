@@ -1,0 +1,726 @@
+2025-10-11 12:46:42 - TwitterBot - INFO - Test log message
+2025-10-11 13:16:30 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:16:30 - TwitterBot - ERROR - Configuration issues: ['ENCRYPTION_KEY should be changed from default value', 'TELEGRAM_ADMIN_IDS should be set']
+2025-10-11 13:19:33 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:19:33 - TwitterBot - ERROR - Configuration issues: ['ENCRYPTION_KEY should be changed from default value', 'TELEGRAM_ADMIN_IDS should be set']
+2025-10-11 13:20:41 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:20:41 - TwitterBot - INFO - Task scheduler started
+2025-10-11 13:20:44 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 13:20:44 - TwitterBot - ERROR - Failed to start system: 'BotLogger' object has no attribute 'send_notification'
+2025-10-11 13:25:28 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:25:28 - TwitterBot - INFO - Task scheduler started
+2025-10-11 13:25:29 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 13:30:35 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:30:35 - TwitterBot - INFO - Task scheduler started
+2025-10-11 13:30:36 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 13:34:41 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:34:41 - TwitterBot - INFO - Task scheduler started
+2025-10-11 13:34:42 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 13:56:14 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 13:56:14 - TwitterBot - INFO - Task scheduler started
+2025-10-11 13:56:15 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 13:56:16 - TwitterBot - ERROR - Bot bot_1 initialization failed: 'Client' object has no attribute 'get_me'
+2025-10-11 13:56:16 - TwitterBot - ERROR - Failed to initialize worker bot_1
+2025-10-11 13:58:04 - TwitterBot - ERROR - Bot bot_1 initialization failed: 'Client' object has no attribute 'get_me'
+2025-10-11 13:58:04 - TwitterBot - ERROR - Failed to initialize worker bot_1
+2025-10-11 14:13:25 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:13:25 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:13:30 - TwitterBot - ERROR - Failed to start system: Timed out
+2025-10-11 14:17:37 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:17:37 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:17:38 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:17:39 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x0000020E933A16A0>>)
+2025-10-11 14:17:39 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:17:39 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:17:39 - TwitterBot - INFO - Worker bot_1 added successfully
+2025-10-11 14:17:39 - TwitterBot - INFO - Task sync_follows_20251011_141739_6111 added to queue (scheduled for 2025-10-11 14:17:39.336051)
+2025-10-11 14:17:39 - TwitterBot - INFO - Executing task sync_follows_20251011_141739_6111: sync_follows
+2025-10-11 14:17:39 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:17:39 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:17:39 - TwitterBot - INFO - Task sync_follows_20251011_141739_6111 completed successfully
+2025-10-11 14:31:09 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:31:09 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:31:10 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:31:10 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:31:10 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:32:53 - TwitterBot - INFO - Task comment_20251011_143253_8856 added to queue (scheduled for 2025-10-11 14:32:53.012649)
+2025-10-11 14:32:53 - TwitterBot - WARNING - No active workers available, skipping task
+2025-10-11 14:33:26 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x000001D9AF2505C0>>)
+2025-10-11 14:33:26 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:33:26 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:33:26 - TwitterBot - INFO - Worker bot_1 added successfully
+2025-10-11 14:33:26 - TwitterBot - INFO - Task sync_follows_20251011_143326_9333 added to queue (scheduled for 2025-10-11 14:33:26.816097)
+2025-10-11 14:33:26 - TwitterBot - INFO - Executing task sync_follows_20251011_143326_9333: sync_follows
+2025-10-11 14:33:26 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:33:26 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:33:26 - TwitterBot - INFO - Task sync_follows_20251011_143326_9333 completed successfully
+2025-10-11 14:36:13 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:36:13 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:36:14 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:36:14 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:36:14 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:36:46 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x000001A36C2CDA00>>)
+2025-10-11 14:36:46 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:36:46 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:36:46 - TwitterBot - INFO - Worker bot_1 added successfully
+2025-10-11 14:36:46 - TwitterBot - INFO - Task sync_follows_20251011_143646_7760 added to queue (scheduled for 2025-10-11 14:36:46.478235)
+2025-10-11 14:36:46 - TwitterBot - INFO - Executing task sync_follows_20251011_143646_7760: sync_follows
+2025-10-11 14:36:46 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:36:46 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:36:46 - TwitterBot - INFO - Task sync_follows_20251011_143646_7760 completed successfully
+2025-10-11 14:37:07 - TwitterBot - INFO - Task comment_20251011_143707_7267 added to queue (scheduled for 2025-10-11 14:37:07.294411)
+2025-10-11 14:37:07 - TwitterBot - INFO - Executing task comment_20251011_143707_7267: comment
+2025-10-11 14:37:09 - TwitterBot - ERROR - Bot bot_1 comment failed: This tweet is not available.
+2025-10-11 14:43:46 - TwitterBot - INFO - Task comment_20251011_144346_1687 added to queue (scheduled for 2025-10-11 14:43:46.367345)
+2025-10-11 14:47:10 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:47:10 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:47:11 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:47:11 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:47:12 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:48:39 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:48:39 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:48:40 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:48:40 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:48:41 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:50:17 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:50:17 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:50:17 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:50:17 - TwitterBot - INFO - Found 0 bots in database
+2025-10-11 14:50:17 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:50:18 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:52:38 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:52:38 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:52:39 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:52:39 - TwitterBot - INFO - Found 0 bots in database
+2025-10-11 14:52:39 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:52:39 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:53:11 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:53:11 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:53:12 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:53:12 - TwitterBot - INFO - Found 0 bots in database
+2025-10-11 14:53:12 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:53:12 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:53:30 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x0000028D76B7E6F0>>)
+2025-10-11 14:53:30 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:53:30 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:53:30 - TwitterBot - INFO - Worker bot_1 added successfully
+2025-10-11 14:53:31 - TwitterBot - INFO - Task sync_follows_20251011_145331_3087 added to queue (scheduled for 2025-10-11 14:53:31.338057)
+2025-10-11 14:53:31 - TwitterBot - INFO - Executing task sync_follows_20251011_145331_3087: sync_follows
+2025-10-11 14:53:31 - TwitterBot - INFO - Bot bot_1 followed 0 other bots
+2025-10-11 14:53:31 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 14:53:31 - TwitterBot - INFO - Task sync_follows_20251011_145331_3087 completed successfully
+2025-10-11 14:53:44 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:53:44 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:53:45 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:53:45 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 14:53:45 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 14:53:45 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x000002C0EA148620>>)
+2025-10-11 14:53:45 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 14:53:45 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:53:46 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:54:23 - TwitterBot - INFO - Task comment_20251011_145423_4956 added to queue (scheduled for 2025-10-11 14:54:23.075641)
+2025-10-11 14:54:23 - TwitterBot - INFO - Executing task comment_20251011_145423_4956: comment
+2025-10-11 14:54:26 - TwitterBot - ERROR - Bot bot_1 comment failed: 'itemContent'
+2025-10-11 14:58:21 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 14:58:21 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 14:58:22 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 14:58:22 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 14:58:22 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 14:58:22 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x0000026CA6244AD0>>)
+2025-10-11 14:58:22 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 14:58:22 - TwitterBot - INFO - Task scheduler started
+2025-10-11 14:58:23 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 14:58:23 - TwitterBot - INFO - Task comment_20251011_145823_7665 added to queue (scheduled for 2025-10-11 14:58:23.939626)
+2025-10-11 14:58:23 - TwitterBot - INFO - Executing task comment_20251011_145823_7665: comment
+2025-10-11 14:58:23 - TwitterBot - INFO - Attempting to get tweet 1966239736823165307
+2025-10-11 14:58:27 - TwitterBot - ERROR - Comment error details: KeyError: 'itemContent'
+2025-10-11 14:58:27 - TwitterBot - ERROR - Bot bot_1 comment failed: 'itemContent'
+2025-10-11 15:02:51 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:02:51 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:02:52 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:02:52 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:02:52 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:02:53 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x00000155B51BBDA0>>)
+2025-10-11 15:02:53 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:02:53 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:02:53 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:03:09 - TwitterBot - INFO - Task comment_20251011_150309_6432 added to queue (scheduled for 2025-10-11 15:03:09.847636)
+2025-10-11 15:03:09 - TwitterBot - INFO - Executing task comment_20251011_150309_6432: comment
+2025-10-11 15:03:09 - TwitterBot - INFO - Attempting to get tweet 1966239736823165307
+2025-10-11 15:03:12 - TwitterBot - ERROR - Comment error details: KeyError: 'itemContent'
+2025-10-11 15:03:13 - TwitterBot - ERROR - Bot bot_1 comment failed: 'itemContent'
+2025-10-11 15:07:56 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:07:56 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:07:57 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:07:57 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:07:57 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:07:58 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x0000016630927170>>)
+2025-10-11 15:07:58 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:07:58 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:07:58 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:08:24 - TwitterBot - INFO - Task comment_20251011_150824_6272 added to queue (scheduled for 2025-10-11 15:08:24.847335)
+2025-10-11 15:08:24 - TwitterBot - INFO - Executing task comment_20251011_150824_6272: comment
+2025-10-11 15:08:24 - TwitterBot - INFO - Attempting to get tweet 1966239736823165307
+2025-10-11 15:08:27 - TwitterBot - ERROR - Comment error details: KeyError: 'itemContent'
+2025-10-11 15:08:28 - TwitterBot - ERROR - Bot bot_1 comment failed: 'itemContent'
+2025-10-11 15:10:47 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:10:47 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:10:47 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:10:47 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:10:47 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:10:48 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x000001C5BEE4E5A0>>)
+2025-10-11 15:10:48 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:10:48 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:10:48 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:11:46 - TwitterBot - INFO - Task comment_20251011_151146_5791 added to queue (scheduled for 2025-10-11 15:11:46.489092)
+2025-10-11 15:11:46 - TwitterBot - INFO - Executing task comment_20251011_151146_5791: comment
+2025-10-11 15:11:46 - TwitterBot - INFO - Using create_tweet method to avoid itemContent error
+2025-10-11 15:11:46 - TwitterBot - ERROR - create_tweet method failed: Client.create_tweet() got an unexpected keyword argument 'in_reply_to_tweet_id'
+2025-10-11 15:11:46 - TwitterBot - ERROR - Comment error details: TypeError: Client.create_tweet() got an unexpected keyword argument 'in_reply_to_tweet_id'
+2025-10-11 15:11:46 - TwitterBot - ERROR - Bot bot_1 comment failed: Client.create_tweet() got an unexpected keyword argument 'in_reply_to_tweet_id'
+2025-10-11 15:13:09 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:13:09 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:13:09 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:13:09 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:13:09 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:13:10 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x000001BDD05C0DA0>>)
+2025-10-11 15:13:10 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:13:10 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:13:10 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:13:23 - TwitterBot - INFO - Task comment_20251011_151323_1075 added to queue (scheduled for 2025-10-11 15:13:23.520804)
+2025-10-11 15:13:23 - TwitterBot - INFO - Executing task comment_20251011_151323_1075: comment
+2025-10-11 15:13:23 - TwitterBot - INFO - Using create_tweet method to avoid itemContent error
+2025-10-11 15:13:24 - TwitterBot - ERROR - create_tweet method failed: 226
+2025-10-11 15:13:24 - TwitterBot - ERROR - Comment error details: KeyError: 226
+2025-10-11 15:13:24 - TwitterBot - ERROR - Bot bot_1 comment failed: 226
+2025-10-11 15:16:41 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:16:41 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:16:42 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:16:42 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:16:42 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:16:42 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x0000028BDC87FA40>>)
+2025-10-11 15:16:42 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:16:42 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:16:42 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:16:55 - TwitterBot - INFO - Task comment_20251011_151655_2845 added to queue (scheduled for 2025-10-11 15:16:55.454557)
+2025-10-11 15:16:55 - TwitterBot - INFO - Executing task comment_20251011_151655_2845: comment
+2025-10-11 15:16:55 - TwitterBot - INFO - Using create_tweet method to avoid itemContent error
+2025-10-11 15:16:56 - TwitterBot - WARNING - create_tweet with reply_to failed: 226
+2025-10-11 15:16:56 - TwitterBot - INFO - Trying fallback method with @mention
+2025-10-11 15:16:56 - TwitterBot - ERROR - All comment methods failed: reply_to=226, mention=226
+2025-10-11 15:16:56 - TwitterBot - ERROR - Comment error details: KeyError: 226
+2025-10-11 15:16:56 - TwitterBot - ERROR - Bot bot_1 comment failed: 226
+2025-10-11 15:18:26 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:18:26 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:18:27 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:18:27 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:18:27 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:18:27 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x00000227C8E267E0>>)
+2025-10-11 15:18:27 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:18:27 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:18:28 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:18:47 - TwitterBot - INFO - Task comment_20251011_151847_3285 added to queue (scheduled for 2025-10-11 15:18:47.630368)
+2025-10-11 15:18:47 - TwitterBot - INFO - Executing task comment_20251011_151847_3285: comment
+2025-10-11 15:18:47 - TwitterBot - INFO - Using create_tweet method to avoid itemContent error
+2025-10-11 15:18:48 - TwitterBot - WARNING - create_tweet with reply_to failed: 226
+2025-10-11 15:18:48 - TwitterBot - INFO - Trying fallback method with @mention
+2025-10-11 15:18:48 - TwitterBot - ERROR - Mention method failed: 226
+2025-10-11 15:18:48 - TwitterBot - INFO - Trying final fallback - regular tweet
+2025-10-11 15:18:49 - TwitterBot - ERROR - All comment methods failed: reply_to=226, mention=226, regular=226
+2025-10-11 15:18:49 - TwitterBot - ERROR - Comment error details: KeyError: 226
+2025-10-11 15:18:49 - TwitterBot - ERROR - Bot bot_1 comment failed: 226
+2025-10-11 15:21:27 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:21:27 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:21:28 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:21:28 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:21:28 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:21:29 - TwitterBot - INFO - Bot bot_1 initialized successfully (ID: <bound method Client.user_id of <twikit.client.Client object at 0x000002342C9BCF20>>)
+2025-10-11 15:21:29 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:21:29 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:21:29 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:23:21 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:23:21 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:23:22 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:23:22 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:23:22 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:23:22 - TwitterBot - ERROR - Bot bot_1 initialization failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 15:23:22 - TwitterBot - WARNING - Failed to load worker bot_1 from database
+2025-10-11 15:23:23 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:23:23 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:24:13 - TwitterBot - ERROR - Bot bot_1 initialization failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 15:24:13 - TwitterBot - ERROR - Failed to initialize worker bot_1
+2025-10-11 15:26:28 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:26:28 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:26:28 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:26:28 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:26:28 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:26:29 - TwitterBot - ERROR - Bot bot_1 initialization failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 15:26:29 - TwitterBot - WARNING - Failed to load worker bot_1 from database - marked as inactive
+2025-10-11 15:26:29 - TwitterBot - INFO - Worker loading complete: 0 loaded, 1 failed
+2025-10-11 15:26:30 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:26:31 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:32:05 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:32:05 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:32:06 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:32:06 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:32:06 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 15:32:06 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 15:32:06 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 15:32:06 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:32:06 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:35:22 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:35:22 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:35:23 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:35:23 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:35:23 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 15:35:23 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 15:35:23 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 15:35:23 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:35:24 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:38:22 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:38:22 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:38:22 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:38:22 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:38:22 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:38:25 - TwitterBot - ERROR - Bot bot_1 authentication failed - account may be suspended or cookies invalid
+2025-10-11 15:38:25 - TwitterBot - WARNING - Failed to load worker bot_1 from database - marked as inactive
+2025-10-11 15:38:25 - TwitterBot - INFO - Worker loading complete: 0 loaded, 1 failed
+2025-10-11 15:38:25 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:38:25 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:38:40 - TwitterBot - ERROR - Bot bot_1 authentication failed - account may be suspended or cookies invalid
+2025-10-11 15:40:25 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 15:40:25 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 15:40:26 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 15:40:26 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 15:40:26 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 15:40:27 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 15:40:28 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 15:40:28 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 15:40:29 - TwitterBot - WARNING - Bot bot_1 method 2 failed: object User can't be used in 'await' expression
+2025-10-11 15:40:29 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 15:40:29 - TwitterBot - WARNING - Bot bot_1 method 3 failed: object User can't be used in 'await' expression
+2025-10-11 15:40:29 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 15:40:29 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 15:40:29 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 15:40:29 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 15:40:29 - TwitterBot - INFO - Task scheduler started
+2025-10-11 15:40:29 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 15:41:18 - TwitterBot - INFO - Task comment_20251011_154118_7807 added to queue (scheduled for 2025-10-11 15:41:18.502417)
+2025-10-11 15:41:18 - TwitterBot - INFO - Executing task comment_20251011_154118_7807: comment
+2025-10-11 15:41:18 - TwitterBot - INFO - Waiting 3.5s before commenting (anti-spam measure)
+2025-10-11 15:41:22 - TwitterBot - INFO - Trying method 1: tweet.reply() with get_tweet_by_id
+2025-10-11 15:41:24 - TwitterBot - WARNING - Method 1 failed: 'itemContent'
+2025-10-11 15:41:24 - TwitterBot - INFO - Trying method 2: create_tweet with reply_to
+2025-10-11 15:41:25 - TwitterBot - WARNING - Method 2 failed: 226
+2025-10-11 15:41:25 - TwitterBot - INFO - Trying method 3: create_tweet with @mention
+2025-10-11 15:41:25 - TwitterBot - ERROR - All methods failed: tweet.reply='itemContent', reply_to=226, mention=226
+2025-10-11 15:41:25 - TwitterBot - ERROR - Comment error details: KeyError: 'itemContent'
+2025-10-11 15:41:26 - TwitterBot - ERROR - Bot bot_1 comment failed: 'itemContent'
+2025-10-11 15:51:26 - TwitterBot - INFO - Comment task completed: 0/1 bots successful
+2025-10-11 15:51:26 - TwitterBot - INFO - Task comment_20251011_154118_7807 failed, retrying (1/3)
+2025-10-11 16:02:31 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:02:31 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:02:32 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:02:32 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 16:02:32 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:02:34 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:02:34 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:02:34 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:02:35 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:02:35 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:02:35 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:02:35 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:02:35 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:02:35 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:02:35 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:02:35 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:02:36 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:03:07 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:03:08 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:03:08 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:03:08 - TwitterBot - WARNING - Bot bot_2 method 2 failed: status: 400, message: "{"errors":[{"message":"NumericString value expected. Received u=1227629644553359361","extensions":{"name":"MalformedVariablesError","source":"Client","code":366,"kind":"Validation","tracing":{"trace_id":"8fbe3c86c9d33a1c"}},"code":366,"kind":"Validation","name":"MalformedVariablesError","source":"Client","tracing":{"trace_id":"8fbe3c86c9d33a1c"}}]}"
+2025-10-11 16:03:08 - TwitterBot - INFO - Bot bot_2 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:03:08 - TwitterBot - ERROR - Bot bot_2 all authentication methods failed
+2025-10-11 16:03:08 - TwitterBot - ERROR - Failed to initialize worker bot_2
+2025-10-11 16:06:43 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:06:43 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:06:44 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:06:44 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 16:06:44 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:06:46 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:06:46 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:06:46 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:06:47 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:06:47 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:06:47 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:06:47 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:06:47 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:06:47 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:06:47 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:06:47 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:06:47 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:07:05 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:07:05 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:07:05 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:07:06 - TwitterBot - WARNING - Bot bot_2 method 2 failed: status: 400, message: "{"errors":[{"message":"NumericString value expected. Received u=1227629644553359361","extensions":{"name":"MalformedVariablesError","source":"Client","code":366,"kind":"Validation","tracing":{"trace_id":"b53045495ecfb656"}},"code":366,"kind":"Validation","name":"MalformedVariablesError","source":"Client","tracing":{"trace_id":"b53045495ecfb656"}}]}"
+2025-10-11 16:07:06 - TwitterBot - INFO - Bot bot_2 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:07:06 - TwitterBot - ERROR - Bot bot_2 all authentication methods failed
+2025-10-11 16:07:06 - TwitterBot - ERROR - Failed to initialize worker bot_2
+2025-10-11 16:10:14 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:10:14 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:10:14 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:10:14 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 16:10:14 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:10:16 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:10:17 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:10:17 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:10:17 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:10:17 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:10:18 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:10:18 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:10:18 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:10:18 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:10:18 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:10:18 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:10:18 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:11:07 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:11:08 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:11:08 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:11:08 - TwitterBot - WARNING - Bot bot_2 method 2 failed: status: 400, message: "{"errors":[{"message":"NumericString value expected. Received u=1227629644553359361","extensions":{"name":"MalformedVariablesError","source":"Client","code":366,"kind":"Validation","tracing":{"trace_id":"2c80159ed6f3bb5b"}},"code":366,"kind":"Validation","name":"MalformedVariablesError","source":"Client","tracing":{"trace_id":"2c80159ed6f3bb5b"}}]}"
+2025-10-11 16:11:08 - TwitterBot - INFO - Bot bot_2 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:11:08 - TwitterBot - ERROR - Bot bot_2 all authentication methods failed
+2025-10-11 16:11:08 - TwitterBot - ERROR - Failed to initialize worker bot_2
+2025-10-11 16:13:58 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:13:58 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:13:59 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:13:59 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 16:13:59 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:14:02 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:14:02 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:14:02 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:14:02 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:14:02 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:14:03 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:14:03 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:14:03 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:14:03 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:14:03 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:14:03 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:14:03 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:15:00 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:15:01 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:15:01 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:15:01 - TwitterBot - WARNING - Bot bot_2 method 2 failed: status: 400, message: "{"errors":[{"message":"NumericString value expected. Received u=1227629644553359361","extensions":{"name":"MalformedVariablesError","source":"Client","code":366,"kind":"Validation","tracing":{"trace_id":"996aea6c8a0daf78"}},"code":366,"kind":"Validation","name":"MalformedVariablesError","source":"Client","tracing":{"trace_id":"996aea6c8a0daf78"}}]}"
+2025-10-11 16:15:01 - TwitterBot - INFO - Bot bot_2 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:15:01 - TwitterBot - ERROR - Bot bot_2 all authentication methods failed
+2025-10-11 16:15:01 - TwitterBot - ERROR - Failed to initialize worker bot_2
+2025-10-11 16:18:37 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:18:37 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:18:38 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:18:38 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 16:18:38 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:18:40 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:18:41 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:18:41 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:18:41 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:18:41 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:18:41 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:18:41 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:18:41 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:18:41 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:18:41 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:18:41 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:18:42 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:19:18 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:19:19 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:19:19 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:19:19 - TwitterBot - WARNING - Bot bot_2 method 2 failed: object User can't be used in 'await' expression
+2025-10-11 16:19:19 - TwitterBot - INFO - Bot bot_2 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:19:19 - TwitterBot - ERROR - Bot bot_2 all authentication methods failed
+2025-10-11 16:19:19 - TwitterBot - ERROR - Failed to initialize worker bot_2
+2025-10-11 16:21:40 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:21:40 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:21:40 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:21:40 - TwitterBot - INFO - Found 1 bots in database
+2025-10-11 16:21:40 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:21:42 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:21:43 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:21:43 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:21:43 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:21:43 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:21:44 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:21:44 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:21:44 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:21:44 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:21:44 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:21:44 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:21:44 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:22:31 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:22:31 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:22:31 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:22:32 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 16:22:32 - TwitterBot - INFO - Bot bot_2 followed 0 other bots
+2025-10-11 16:22:33 - TwitterBot - ERROR - Bot bot_1 follow failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:22:33 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 16:22:33 - TwitterBot - INFO - Worker bot_2 added successfully
+2025-10-11 16:22:33 - TwitterBot - INFO - Task sync_follows_20251011_162233_7193 added to queue (scheduled for 2025-10-11 16:22:33.506792)
+2025-10-11 16:22:33 - TwitterBot - INFO - Executing task sync_follows_20251011_162233_7193: sync_follows
+2025-10-11 16:22:33 - TwitterBot - INFO - Bot bot_2 followed 0 other bots
+2025-10-11 16:22:33 - TwitterBot - ERROR - Bot bot_1 follow failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:22:33 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 16:22:33 - TwitterBot - INFO - Task sync_follows_20251011_162233_7193 completed successfully
+2025-10-11 16:36:30 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:36:30 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:36:31 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:36:31 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 16:36:31 - TwitterBot - INFO - Processing bot bot_1: status=active
+2025-10-11 16:36:33 - TwitterBot - INFO - Bot bot_1 trying method 1: client.user()
+2025-10-11 16:36:34 - TwitterBot - WARNING - Bot bot_1 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:36:34 - TwitterBot - INFO - Bot bot_1 trying method 2: get_user_by_id from twid
+2025-10-11 16:36:35 - TwitterBot - WARNING - Bot bot_1 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:36:35 - TwitterBot - INFO - Bot bot_1 trying method 3: get_user_by_id from auth_multi
+2025-10-11 16:36:35 - TwitterBot - WARNING - Bot bot_1 method 3 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 16:36:35 - TwitterBot - INFO - Bot bot_1 trying method 4: assume valid cookies
+2025-10-11 16:36:35 - TwitterBot - INFO - Bot bot_1 initialized with valid cookies (auth_token, ct0 present)
+2025-10-11 16:36:35 - TwitterBot - INFO - Loaded worker bot_1 from database
+2025-10-11 16:36:35 - TwitterBot - INFO - Processing bot bot_2: status=active
+2025-10-11 16:36:37 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:36:37 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:36:37 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:36:38 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 16:36:38 - TwitterBot - INFO - Loaded worker bot_2 from database
+2025-10-11 16:36:38 - TwitterBot - INFO - Worker loading complete: 2 loaded, 0 failed
+2025-10-11 16:36:38 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:36:38 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:36:39 - TwitterBot - INFO - Worker bot_1 removed from active workers
+2025-10-11 16:36:39 - TwitterBot - INFO - Worker bot_1 disabled successfully
+2025-10-11 16:37:17 - TwitterBot - INFO - Task comment_20251011_163717_6455 added to queue (scheduled for 2025-10-11 16:37:17.436919)
+2025-10-11 16:37:17 - TwitterBot - INFO - Executing task comment_20251011_163717_6455: comment
+2025-10-11 16:37:17 - TwitterBot - INFO - Waiting 13.9s before commenting (anti-spam measure)
+2025-10-11 16:37:34 - TwitterBot - INFO - Trying method 1: tweet.reply() with get_tweet_by_id
+2025-10-11 16:37:37 - TwitterBot - WARNING - Method 1 failed: 'itemContent'
+2025-10-11 16:37:37 - TwitterBot - INFO - Trying method 2: create_tweet with reply_to
+2025-10-11 16:37:37 - TwitterBot - WARNING - Method 2 failed: 344
+2025-10-11 16:37:37 - TwitterBot - INFO - Trying method 3: create_tweet with @mention
+2025-10-11 16:37:38 - TwitterBot - ERROR - All methods failed: tweet.reply='itemContent', reply_to=344, mention=344
+2025-10-11 16:37:38 - TwitterBot - ERROR - Comment error details: KeyError: 'itemContent'
+2025-10-11 16:37:38 - TwitterBot - ERROR - Bot bot_2 comment failed: 'itemContent'
+2025-10-11 16:40:11 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:40:11 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:40:12 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:40:12 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 16:40:12 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 16:40:12 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 16:40:12 - TwitterBot - INFO - Processing bot bot_2: status=active
+2025-10-11 16:40:14 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:40:15 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:40:15 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:40:15 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 16:40:15 - TwitterBot - INFO - Loaded worker bot_2 from database
+2025-10-11 16:40:15 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:40:15 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:40:16 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:41:42 - TwitterBot - INFO - Task comment_20251011_164142_9965 added to queue (scheduled for 2025-10-11 16:41:42.474445)
+2025-10-11 16:41:42 - TwitterBot - INFO - Executing task comment_20251011_164142_9965: comment
+2025-10-11 16:41:42 - TwitterBot - INFO - Waiting 50.2s before commenting (anti-spam measure)
+2025-10-11 16:42:35 - TwitterBot - INFO - Trying method 1: tweet.reply() with get_tweet_by_id
+2025-10-11 16:42:38 - TwitterBot - WARNING - Method 1 failed: 'itemContent'
+2025-10-11 16:42:38 - TwitterBot - INFO - Trying method 2: create_tweet with reply_to
+2025-10-11 16:42:38 - TwitterBot - WARNING - Method 2 failed: 344
+2025-10-11 16:42:38 - TwitterBot - WARNING - Bot bot_2 hit rate limit on method 2
+2025-10-11 16:42:38 - TwitterBot - ERROR - Comment error details: TypeError: BotLogger.send_rate_limit_alert() takes 3 positional arguments but 4 were given
+2025-10-11 16:42:38 - TwitterBot - ERROR - Bot bot_2 comment failed: BotLogger.send_rate_limit_alert() takes 3 positional arguments but 4 were given
+2025-10-11 16:48:16 - TwitterBot - INFO - Task like_20251011_164816_3760 added to queue (scheduled for 2025-10-11 16:48:16.719163)
+2025-10-11 16:49:06 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:49:06 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:49:07 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:49:07 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 16:49:07 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 16:49:07 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 16:49:07 - TwitterBot - INFO - Processing bot bot_2: status=rate_limited
+2025-10-11 16:49:07 - TwitterBot - INFO - Skipping bot bot_2 - status: rate_limited
+2025-10-11 16:49:07 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 16:49:07 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:49:07 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:52:12 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:52:12 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:52:13 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:52:13 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 16:52:13 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 16:52:13 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 16:52:13 - TwitterBot - INFO - Processing bot bot_2: status=rate_limited
+2025-10-11 16:52:13 - TwitterBot - INFO - Skipping bot bot_2 - status: rate_limited
+2025-10-11 16:52:13 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 16:52:13 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:52:13 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:52:16 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:52:16 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:52:16 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:52:17 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 16:52:17 - TwitterBot - INFO - Bot bot_2 followed 0 other bots
+2025-10-11 16:52:17 - TwitterBot - INFO - Mutual following sync completed
+2025-10-11 16:52:17 - TwitterBot - INFO - Worker bot_2 added successfully
+2025-10-11 16:52:17 - TwitterBot - INFO - Worker bot_2 enabled and reinitialized successfully
+2025-10-11 16:53:54 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:53:54 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:53:55 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:53:55 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 16:53:55 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 16:53:55 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 16:53:55 - TwitterBot - INFO - Processing bot bot_2: status=active
+2025-10-11 16:53:58 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:53:59 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:53:59 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:53:59 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 16:53:59 - TwitterBot - INFO - Loaded worker bot_2 from database
+2025-10-11 16:53:59 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:53:59 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:54:00 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:54:00 - TwitterBot - INFO - Bot bot_2 starting unfollow all followers process
+2025-10-11 16:54:00 - TwitterBot - WARNING - Bot bot_2 couldn't get user info: 'Client' object has no attribute 'get_me'
+2025-10-11 16:58:50 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 16:58:50 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 16:58:51 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 16:58:51 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 16:58:51 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 16:58:51 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 16:58:51 - TwitterBot - INFO - Processing bot bot_2: status=active
+2025-10-11 16:58:54 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 16:58:54 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 16:58:54 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 16:58:55 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 16:58:55 - TwitterBot - INFO - Loaded worker bot_2 from database
+2025-10-11 16:58:55 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 16:58:55 - TwitterBot - INFO - Task scheduler started
+2025-10-11 16:58:56 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 16:59:05 - TwitterBot - INFO - Bot bot_2 starting unfollow all following process
+2025-10-11 16:59:05 - TwitterBot - WARNING - Bot bot_2 couldn't get user info: 'Client' object has no attribute 'get_me'
+2025-10-11 17:15:08 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 17:15:08 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 17:15:08 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 17:15:08 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 17:15:08 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 17:15:08 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 17:15:08 - TwitterBot - INFO - Processing bot bot_2: status=active
+2025-10-11 17:15:11 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 17:15:12 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 17:15:12 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 17:15:12 - TwitterBot - INFO - Bot bot_2 initialized successfully as @khalid_ayomide (ID: 1227629644553359361)
+2025-10-11 17:15:12 - TwitterBot - INFO - Loaded worker bot_2 from database
+2025-10-11 17:15:12 - TwitterBot - INFO - Worker loading complete: 1 loaded, 0 failed
+2025-10-11 17:15:12 - TwitterBot - INFO - Task scheduler started
+2025-10-11 17:15:13 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 17:16:32 - TwitterBot - INFO - Bot bot_2 starting unfollow all following process
+2025-10-11 17:16:33 - TwitterBot - WARNING - Bot bot_2 couldn't get current user: status: 404, message: "{"errors":[{"message":"Sorry, that page does not exist","code":34}]}"
+2025-10-11 17:16:33 - TwitterBot - WARNING - Bot bot_2 get_user_following failed: Client.get_user_following() got an unexpected keyword argument 'limit'
+2025-10-11 17:16:33 - TwitterBot - WARNING - Bot bot_2 get_following failed: 'Client' object has no attribute 'get_following'
+2025-10-11 17:16:33 - TwitterBot - WARNING - Bot bot_2 couldn't get following with any method
+2025-10-11 18:32:35 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 18:42:20 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 18:42:20 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 18:42:21 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 18:42:21 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 18:42:21 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 18:42:21 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 18:42:21 - TwitterBot - INFO - Processing bot bot_2: status=active
+2025-10-11 18:42:24 - TwitterBot - INFO - Bot bot_2 trying method 1: client.user()
+2025-10-11 18:42:25 - TwitterBot - WARNING - Bot bot_2 method 1 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 18:42:25 - TwitterBot - INFO - Bot bot_2 trying method 2: get_user_by_id from twid
+2025-10-11 18:42:26 - TwitterBot - WARNING - Bot bot_2 method 2 failed: status: 401, message: "{"errors":[{"message":"Could not authenticate you","code":32}]}
+"
+2025-10-11 18:42:26 - TwitterBot - INFO - Bot bot_2 trying method 3: get_user_by_id from auth_multi
+2025-10-11 18:42:26 - TwitterBot - ERROR - Bot bot_2 all authentication methods failed
+2025-10-11 18:42:26 - TwitterBot - WARNING - Failed to load worker bot_2 from database - marked as inactive
+2025-10-11 18:42:26 - TwitterBot - INFO - Worker loading complete: 0 loaded, 1 failed
+2025-10-11 18:42:26 - TwitterBot - INFO - Task scheduler started
+2025-10-11 18:42:27 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 19:03:14 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 19:03:14 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 19:03:14 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 19:03:14 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 19:03:14 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 19:03:14 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 19:03:14 - TwitterBot - INFO - Processing bot bot_2: status=inactive
+2025-10-11 19:03:14 - TwitterBot - INFO - Skipping bot bot_2 - status: inactive
+2025-10-11 19:03:14 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 19:03:14 - TwitterBot - INFO - Task scheduler started
+2025-10-11 19:03:15 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 19:15:36 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 19:15:36 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 19:15:37 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 19:15:37 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 19:15:37 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 19:15:37 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 19:15:37 - TwitterBot - INFO - Processing bot bot_2: status=inactive
+2025-10-11 19:15:37 - TwitterBot - INFO - Skipping bot bot_2 - status: inactive
+2025-10-11 19:15:37 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 19:15:37 - TwitterBot - INFO - Task scheduler started
+2025-10-11 19:15:38 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 19:19:00 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 19:19:00 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 19:19:00 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 19:19:00 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 19:19:00 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 19:19:00 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 19:19:00 - TwitterBot - INFO - Processing bot bot_2: status=inactive
+2025-10-11 19:19:00 - TwitterBot - INFO - Skipping bot bot_2 - status: inactive
+2025-10-11 19:19:00 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 19:19:00 - TwitterBot - INFO - Task scheduler started
+2025-10-11 19:19:01 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 19:24:17 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 19:24:17 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 19:24:19 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 19:24:19 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 19:24:19 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 19:24:19 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 19:24:19 - TwitterBot - INFO - Processing bot bot_2: status=inactive
+2025-10-11 19:24:19 - TwitterBot - INFO - Skipping bot bot_2 - status: inactive
+2025-10-11 19:24:19 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 19:24:19 - TwitterBot - INFO - Task scheduler started
+2025-10-11 19:24:19 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 19:35:57 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 19:35:57 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 19:35:57 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 19:35:57 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 19:35:57 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 19:35:57 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 19:35:57 - TwitterBot - INFO - Processing bot bot_2: status=inactive
+2025-10-11 19:35:57 - TwitterBot - INFO - Skipping bot bot_2 - status: inactive
+2025-10-11 19:35:57 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 19:35:57 - TwitterBot - INFO - Task scheduler started
+2025-10-11 19:35:58 - TwitterBot - INFO - Twitter Bot System started successfully!
+2025-10-11 19:40:37 - TwitterBot - INFO - Loaded 100 NFT comments for worker manager
+2025-10-11 19:40:37 - TwitterBot - INFO - Loaded 100 NFT comments
+2025-10-11 19:40:38 - TwitterBot - INFO - Starting Twitter Bot System...
+2025-10-11 19:40:38 - TwitterBot - INFO - Found 2 bots in database
+2025-10-11 19:40:38 - TwitterBot - INFO - Processing bot bot_1: status=inactive
+2025-10-11 19:40:38 - TwitterBot - INFO - Skipping bot bot_1 - status: inactive
+2025-10-11 19:40:38 - TwitterBot - INFO - Processing bot bot_2: status=inactive
+2025-10-11 19:40:38 - TwitterBot - INFO - Skipping bot bot_2 - status: inactive
+2025-10-11 19:40:38 - TwitterBot - INFO - Worker loading complete: 0 loaded, 0 failed
+2025-10-11 19:40:38 - TwitterBot - INFO - Task scheduler started
+2025-10-11 19:40:39 - TwitterBot - INFO - Twitter Bot System started successfully!
