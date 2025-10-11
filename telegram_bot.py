@@ -1790,6 +1790,13 @@ Bot Status:
             self.is_running = True
             self.logger.info("Twitter Bot System started successfully!")
 
+            # Set bot commands for autocomplete
+            try:
+                await self.set_bot_commands()
+                self.logger.info("Bot commands set successfully")
+            except Exception as e:
+                self.logger.warning(f"Failed to set bot commands: {e}")
+
             # Send startup notification
             try:
                 await self.logger.send_notification(
@@ -1807,6 +1814,50 @@ Bot Status:
         except Exception as e:
             self.logger.error(f"Failed to start system: {e}")
             return False
+
+    async def set_bot_commands(self):
+        """Set bot commands for Telegram's autocomplete"""
+        from telegram import BotCommand
+        
+        commands = [
+            BotCommand("start", "Show main menu"),
+            BotCommand("help", "Show all available commands"),
+            BotCommand("status", "Show system and bot status"),
+            BotCommand("logs", "View recent system logs"),
+            BotCommand("addbot", "Add new worker bot from cookie file"),
+            BotCommand("addbotjson", "Add bot directly with JSON cookie data"),
+            BotCommand("addbotlogin", "Add bot via username/password login"),
+            BotCommand("removebot", "Remove worker bot"),
+            BotCommand("disable", "Disable a bot (mark as inactive)"),
+            BotCommand("enable", "Enable a disabled bot"),
+            BotCommand("delete", "Permanently delete a bot"),
+            BotCommand("listbots", "List all worker bots and their status"),
+            BotCommand("syncfollows", "Sync mutual following between all bots"),
+            BotCommand("post", "Like, comment, and retweet a specific post"),
+            BotCommand("like", "Like a specific post"),
+            BotCommand("retweet", "Retweet a specific post"),
+            BotCommand("comment", "Comment on a specific post"),
+            BotCommand("quote", "Quote tweets containing keyword with mentions"),
+            BotCommand("unfollow", "Unfollow all followers for a specific bot"),
+            BotCommand("search", "Search for tweets with keyword"),
+            BotCommand("pool", "Show user pool status for keyword"),
+            BotCommand("refresh", "Refresh user pool for keyword"),
+            BotCommand("stats", "Show engagement statistics"),
+            BotCommand("queue", "Show pending and in-progress tasks"),
+            BotCommand("test", "Diagnose bot authentication and basic functionality"),
+            BotCommand("reinit", "Reinitialize bot authentication for all workers"),
+            BotCommand("version", "Check Twikit version and capabilities"),
+            BotCommand("testlogin", "Test if login is blocked by Cloudflare"),
+            BotCommand("reactivate", "Reactivate inactive bots"),
+            BotCommand("checkduplicates", "Check for duplicate auth_tokens"),
+            BotCommand("cleanup", "Remove all inactive bots from the database"),
+            BotCommand("savecookies", "Save all bot cookies to files"),
+            BotCommand("update", "Interactive update menu (update & restart, restart only, restart system, check status)"),
+            BotCommand("restart", "Restart bot without updating code"),
+            BotCommand("backup", "Create backup of system data"),
+        ]
+        
+        await self.application.bot.set_my_commands(commands)
 
     async def stop_system(self):
         """Stop the entire system"""
