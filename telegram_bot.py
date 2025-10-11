@@ -1942,9 +1942,9 @@ Bot Status:
             bot_pid = None
             for proc in psutil.process_iter(["pid", "name", "cmdline"]):
                 try:
-            if proc.info["name"] in ["python", "python3"] and "main.py" in " ".join(
-                proc.info["cmdline"]
-            ):
+                    if proc.info["name"] in ["python", "python3"] and "main.py" in " ".join(
+                        proc.info["cmdline"]
+                    ):
                         bot_running = True
                         bot_pid = proc.info["pid"]
                         break
