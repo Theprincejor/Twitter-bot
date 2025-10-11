@@ -34,6 +34,16 @@ class Config:
     MAX_WORKERS = int(os.getenv("MAX_WORKERS", "50"))
     TASK_QUEUE_SIZE = int(os.getenv("TASK_QUEUE_SIZE", "1000"))
 
+    # Captcha solver configuration
+    CAPSOLVER_API_KEY = os.getenv("CAPSOLVER_API_KEY", "")
+    CAPSOLVER_MAX_ATTEMPTS = int(os.getenv("CAPSOLVER_MAX_ATTEMPTS", "3"))
+    CAPSOLVER_RESULT_INTERVAL = float(os.getenv("CAPSOLVER_RESULT_INTERVAL", "1.0"))
+    USE_CAPTCHA_SOLVER = os.getenv("USE_CAPTCHA_SOLVER", "false").lower() == "true"
+
+    # Cloudflare bypass configuration
+    USE_CLOUDSCRAPER = os.getenv("USE_CLOUDSCRAPER", "false").lower() == "true"
+    CLOUDSCRAPER_DELAY = int(os.getenv("CLOUDSCRAPER_DELAY", "2"))
+
     @classmethod
     def validate_config(cls) -> Dict[str, Any]:
         issues = []

@@ -13,6 +13,7 @@ import httpx
 from database import Database
 from logger import bot_logger
 from config import Config
+from captcha_solver import captcha_solver
 
 
 class TwitterWorker:
@@ -22,18 +23,32 @@ class TwitterWorker:
         self.bot_id = bot_id
         self.cookie_data = cookie_data
         self.db = db
+        # Initialize client with captcha solver if available
+        captcha_solver_instance = captcha_solver.get_captcha_solver()
+
         # Work around the proxy parameter issue in newer Twikit versions
         try:
-            self.client = Client("en-US")
+            if captcha_solver_instance:
+                self.client = Client("en-US", captcha_solver=captcha_solver_instance)
+                self.logger.info(f"Bot {self.bot_id} initialized with captcha solver")
+            else:
+                self.client = Client("en-US")
         except TypeError as e:
             if "proxy" in str(e):
                 # Patch the httpx AsyncClient to ignore proxy parameter
                 original_init = httpx.AsyncClient.__init__
+
                 def patched_init(self, *args, **kwargs):
-                    kwargs.pop('proxy', None)
+                    kwargs.pop("proxy", None)
                     return original_init(self, *args, **kwargs)
+
                 httpx.AsyncClient.__init__ = patched_init
-                self.client = Client("en-US")
+                if captcha_solver_instance:
+                    self.client = Client(
+                        "en-US", captcha_solver=captcha_solver_instance
+                    )
+                else:
+                    self.client = Client("en-US")
             else:
                 raise e
         self.is_logged_in = False
@@ -196,9 +211,11 @@ class TwitterWorker:
                 if "proxy" in str(e):
                     # Patch the httpx AsyncClient to ignore proxy parameter
                     original_init = httpx.AsyncClient.__init__
+
                     def patched_init(self, *args, **kwargs):
-                        kwargs.pop('proxy', None)
+                        kwargs.pop("proxy", None)
                         return original_init(self, *args, **kwargs)
+
                     httpx.AsyncClient.__init__ = patched_init
                     self.client = Client()
                 else:

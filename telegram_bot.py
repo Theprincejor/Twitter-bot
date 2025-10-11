@@ -27,6 +27,7 @@ from worker_manager import WorkerManager, TwitterWorker
 from scheduler import TaskScheduler, TaskType
 from twitter_engine import TwitterSearchEngine, TwitterEngagementEngine
 from logger import bot_logger
+from captcha_solver import captcha_solver
 
 
 class TwitterBotTelegram:
@@ -97,6 +98,12 @@ class TwitterBotTelegram:
         self.application.add_handler(CommandHandler("version", self.version_command))
         self.application.add_handler(
             CommandHandler("testlogin", self.testlogin_command)
+        )
+        self.application.add_handler(
+            CommandHandler("captchastatus", self.captchastatus_command)
+        )
+        self.application.add_handler(
+            CommandHandler("cloudflare", self.cloudflare_command)
         )
         self.application.add_handler(
             CommandHandler("reactivate", self.reactivate_command)
@@ -1007,14 +1014,48 @@ Bot Status:
             return
 
         try:
-            await update.message.reply_text("Testing login connectivity...")
+            await update.message.reply_text("🔍 Testing login connectivity...")
+
+            # Test Cloudflare bypass first
+            if captcha_solver.is_cloudscraper_available():
+                await update.message.reply_text("🌐 Testing Cloudflare bypass...")
+                cloudflare_result = await captcha_solver.test_cloudflare_bypass()
+
+                if cloudflare_result["success"]:
+                    await update.message.reply_text(
+                        "✅ Cloudflare bypass working!\n"
+                        f"Status: {cloudflare_result.get('message', 'OK')}"
+                    )
+                else:
+                    await update.message.reply_text(
+                        "⚠️ Cloudflare bypass failed\n"
+                        f"Error: {cloudflare_result.get('error', 'Unknown')}\n"
+                        f"Recommendation: {cloudflare_result.get('recommendation', 'Check configuration')}"
+                    )
+
+            # Test captcha solver availability
+            if captcha_solver.is_captcha_solver_available():
+                await update.message.reply_text("🧩 Captcha solver available!")
+            else:
+                await update.message.reply_text("⚠️ Captcha solver not available")
+
+            # Test basic Twikit connectivity
+            await update.message.reply_text("🔗 Testing Twikit connectivity...")
 
             from twikit import Client
             import httpx
 
+            # Get captcha solver for client
+            captcha_solver_instance = captcha_solver.get_captcha_solver()
+
             # Work around the proxy parameter issue in newer Twikit versions
             try:
-                temp_client = Client(language="en-US")
+                if captcha_solver_instance:
+                    temp_client = Client(
+                        language="en-US", captcha_solver=captcha_solver_instance
+                    )
+                else:
+                    temp_client = Client(language="en-US")
             except TypeError as e:
                 if "proxy" in str(e):
                     # Patch the httpx AsyncClient to ignore proxy parameter
@@ -1025,7 +1066,12 @@ Bot Status:
                         return original_init(self, *args, **kwargs)
 
                     httpx.AsyncClient.__init__ = patched_init
-                    temp_client = Client(language="en-US")
+                    if captcha_solver_instance:
+                        temp_client = Client(
+                            language="en-US", captcha_solver=captcha_solver_instance
+                        )
+                    else:
+                        temp_client = Client(language="en-US")
                 else:
                     raise e
 
@@ -1048,11 +1094,16 @@ Bot Status:
                     or "Cloudflare" in error_msg
                     or "blocked" in error_msg
                 ):
-                    await update.message.reply_text(
-                        "❌ Login is BLOCKED by Cloudflare\n"
-                        "Recommendation: Use cookie upload method instead\n"
-                        "Commands: /addbot or /addbotjson"
+                    status_text = (
+                        "❌ Login is BLOCKED by Cloudflare\n\n"
+                        "🔧 Solutions:\n"
+                        "1. Use cookie upload method: `/addbot` or `/addbotjson`\n"
+                        "2. Enable captcha solver: Set `USE_CAPTCHA_SOLVER=true`\n"
+                        "3. Enable cloudscraper: Set `USE_CLOUDSCRAPER=true`\n"
+                        "4. Get CAPSOLVER_API_KEY from https://capsolver.com\n\n"
+                        "💡 Run `/captchastatus` for detailed status"
                     )
+                    await update.message.reply_text(status_text)
                 elif "cookies_file" in error_msg:
                     await update.message.reply_text(
                         "⚠️ Twikit version issue detected\n"
@@ -1068,6 +1119,110 @@ Bot Status:
 
         except Exception as e:
             await update.message.reply_text(f"Test failed: {str(e)}")
+
+    async def captchastatus_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /captchastatus command to show captcha solver status"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("Access denied. You are not an admin.")
+            return
+
+        try:
+            status = captcha_solver.get_status()
+
+            status_text = "🧩 Captcha Solver Status\n\n"
+
+            # Captcha solver status
+            captcha_status = status["captcha_solver"]
+            status_text += "🔧 Captcha Solver:\n"
+            status_text += (
+                f"   Enabled: {'✅' if captcha_status['enabled'] else '❌'}\n"
+            )
+            status_text += (
+                f"   Configured: {'✅' if captcha_status['configured'] else '❌'}\n"
+            )
+            status_text += (
+                f"   Available: {'✅' if captcha_status['available'] else '❌'}\n\n"
+            )
+
+            # Cloudscraper status
+            cloudscraper_status = status["cloudscraper"]
+            status_text += "🌐 Cloudscraper:\n"
+            status_text += (
+                f"   Enabled: {'✅' if cloudscraper_status['enabled'] else '❌'}\n"
+            )
+            status_text += f"   Available: {'✅' if cloudscraper_status['available'] else '❌'}\n\n"
+
+            # Recommendations
+            if status["recommendations"]:
+                status_text += "💡 Recommendations:\n"
+                for i, rec in enumerate(status["recommendations"], 1):
+                    status_text += f"   {i}. {rec}\n"
+            else:
+                status_text += "✅ All systems configured properly!"
+
+            await update.message.reply_text(status_text)
+
+        except Exception as e:
+            await update.message.reply_text(f"Error getting status: {str(e)}")
+
+    async def cloudflare_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /cloudflare command to test and get Cloudflare cookies"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("Access denied. You are not an admin.")
+            return
+
+        try:
+            if not captcha_solver.is_cloudscraper_available():
+                await update.message.reply_text(
+                    "❌ Cloudscraper not available\n"
+                    "Enable it by setting USE_CLOUDSCRAPER=true in .env"
+                )
+                return
+
+            await update.message.reply_text("🌐 Getting Cloudflare cookies...")
+
+            # Get Cloudflare cookies
+            result = await captcha_solver.get_cloudflare_cookies()
+
+            if result["success"]:
+                cookies = result["cookies"]
+                user_agent = result["user_agent"]
+
+                # Create a temporary cookie file
+                cookie_data = {
+                    "cookies": cookies,
+                    "user_agent": user_agent,
+                    "timestamp": datetime.now().isoformat(),
+                    "source": "cloudflare_bypass",
+                }
+
+                # Save to temp file
+                temp_file = f"data/cookies/cloudflare_temp_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                os.makedirs(os.path.dirname(temp_file), exist_ok=True)
+
+                with open(temp_file, "w") as f:
+                    json.dump(cookie_data, f, indent=2)
+
+                await update.message.reply_text(
+                    f"✅ Cloudflare cookies obtained!\n\n"
+                    f"📁 Saved to: {temp_file}\n"
+                    f"🍪 Cookies found: {len(cookies)}\n"
+                    f"🌐 User-Agent: {user_agent[:50]}...\n\n"
+                    f"💡 You can use these cookies with `/addbotjson {temp_file}`"
+                )
+            else:
+                await update.message.reply_text(
+                    f"❌ Failed to get Cloudflare cookies\n"
+                    f"Error: {result.get('error', 'Unknown')}\n"
+                    f"Recommendation: {result.get('recommendation', 'Check configuration')}"
+                )
+
+        except Exception as e:
+            await update.message.reply_text(f"Error: {str(e)}")
 
     # Additional command handlers (simplified for brevity)
     async def removebot_command(
@@ -1818,7 +1973,7 @@ Bot Status:
     async def set_bot_commands(self):
         """Set bot commands for Telegram's autocomplete"""
         from telegram import BotCommand
-        
+
         commands = [
             BotCommand("start", "Show main menu"),
             BotCommand("help", "Show all available commands"),
@@ -1848,15 +2003,20 @@ Bot Status:
             BotCommand("reinit", "Reinitialize bot authentication for all workers"),
             BotCommand("version", "Check Twikit version and capabilities"),
             BotCommand("testlogin", "Test if login is blocked by Cloudflare"),
+            BotCommand("captchastatus", "Show captcha solver status"),
+            BotCommand("cloudflare", "Get Cloudflare cookies for bypass"),
             BotCommand("reactivate", "Reactivate inactive bots"),
             BotCommand("checkduplicates", "Check for duplicate auth_tokens"),
             BotCommand("cleanup", "Remove all inactive bots from the database"),
             BotCommand("savecookies", "Save all bot cookies to files"),
-            BotCommand("update", "Interactive update menu (update & restart, restart only, restart system, check status)"),
+            BotCommand(
+                "update",
+                "Interactive update menu (update & restart, restart only, restart system, check status)",
+            ),
             BotCommand("restart", "Restart bot without updating code"),
             BotCommand("backup", "Create backup of system data"),
         ]
-        
+
         await self.application.bot.set_my_commands(commands)
 
     async def stop_system(self):

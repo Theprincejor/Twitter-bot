@@ -7,6 +7,8 @@ A comprehensive Twitter automation system with Telegram command center that mana
 - **Telegram Command Center**: Control all bots through a single Telegram interface
 - **Multi-Bot Management**: Manage multiple Twitter accounts as worker bots
 - **Smart Rate Limiting**: Global rate limiting with automatic cooldowns and captcha handling
+- **Cloudflare Bypass**: Automatic Cloudflare protection bypass with cloudscraper
+- **Captcha Solving**: Integrated Capsolver for automatic captcha solving
 - **Engagement Automation**: Like, comment, retweet, and quote tweets automatically
 - **Keyword Targeting**: Search and engage with tweets containing specific keywords
 - **User Pool Management**: Build and manage pools of users for mentions
@@ -106,6 +108,11 @@ python telegram_bot.py
 - `/logs` - View recent system logs
 - `/backup` - Create database backup
 
+### Cloudflare & Captcha
+- `/testlogin` - Test login connectivity and Cloudflare bypass
+- `/captchastatus` - Show captcha solver status
+- `/cloudflare` - Get Cloudflare cookies for bypass
+
 ## 🔧 Configuration Options
 
 ### Rate Limiting
@@ -117,6 +124,15 @@ COMMENT_MAX_INTERVAL=30          # Maximum comment interval
 QUOTE_CYCLE_MIN=10               # Minimum quote cycle time
 QUOTE_CYCLE_MAX=20               # Maximum quote cycle time
 RATE_LIMIT_PAUSE_MINUTES=20      # Pause duration for rate-limited bots
+
+# Captcha Solver Configuration
+USE_CAPTCHA_SOLVER=false         # Enable automatic captcha solving
+CAPSOLVER_API_KEY=your_key       # Capsolver API key
+CAPSOLVER_MAX_ATTEMPTS=3         # Max captcha solve attempts
+
+# Cloudflare Bypass Configuration
+USE_CLOUDSCRAPER=false           # Enable Cloudflare bypass
+CLOUDSCRAPER_DELAY=2             # Delay between requests
 ```
 
 ### System Settings
@@ -133,6 +149,8 @@ MAX_MENTIONS_PER_QUOTE=3        # Maximum mentions per quote tweet
 - **Admin-Only Access**: Commands restricted to configured admin IDs
 - **Rate Limit Protection**: Automatic detection and handling of rate limits
 - **Captcha Detection**: Automatic pausing when captcha is required
+- **Captcha Solving**: Automatic captcha solving with Capsolver integration
+- **Cloudflare Bypass**: Bypass Cloudflare protection with cloudscraper
 - **Secure Logging**: Sensitive information excluded from logs
 
 ## 📊 Monitoring & Logging
