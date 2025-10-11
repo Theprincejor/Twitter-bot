@@ -8,7 +8,6 @@ When you see this error:
 Recommendation: Use cookie upload method instead
 Commands: /addbot or /addbotjson
 ```
-
 This means Twitter's Cloudflare protection is blocking automated login attempts. Here are **4 comprehensive solutions** to solve this issue:
 
 ## 🔧 Solution 1: Automatic Captcha Solving (Recommended)
