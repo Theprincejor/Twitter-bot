@@ -37,13 +37,11 @@ class CaptchaSolver:
                 max_attempts=self.config.CAPSOLVER_MAX_ATTEMPTS,
                 get_result_interval=self.config.CAPSOLVER_RESULT_INTERVAL,
             )
-            self.logger.info("✅ Capsolver initialized successfully")
+            print("✅ Capsolver initialized successfully")
         except ImportError:
-            self.logger.warning(
-                "⚠️ Capsolver not available - install twikit with captcha support"
-            )
+            print("⚠️ Capsolver not available - install twikit with captcha support")
         except Exception as e:
-            self.logger.error(f"❌ Failed to initialize Capsolver: {e}")
+            print(f"❌ Failed to initialize Capsolver: {e}")
 
     def _initialize_cloudscraper(self):
         """Initialize cloudscraper for Cloudflare bypass"""
@@ -53,13 +51,11 @@ class CaptchaSolver:
             self.cloudscraper_session = cloudscraper.create_scraper(
                 browser={"browser": "chrome", "platform": "windows", "mobile": False}
             )
-            self.logger.info("✅ Cloudscraper initialized successfully")
+            print("✅ Cloudscraper initialized successfully")
         except ImportError:
-            self.logger.warning(
-                "⚠️ Cloudscraper not available - install cloudscraper package"
-            )
+            print("⚠️ Cloudscraper not available - install cloudscraper package")
         except Exception as e:
-            self.logger.error(f"❌ Failed to initialize Cloudscraper: {e}")
+            print(f"❌ Failed to initialize Cloudscraper: {e}")
 
     def get_captcha_solver(self):
         """Get the captcha solver instance for Twikit Client"""
