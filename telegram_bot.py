@@ -15,6 +15,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
     ContextTypes,
+    CallbackQueryHandler,
 )
 from telegram.error import TelegramError
 
@@ -125,6 +126,9 @@ class TwitterBotTelegram:
             )
         )
 
+        # Callback query handler for inline keyboards
+        self.application.add_handler(CallbackQueryHandler(self.handle_callback_query))
+
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         if not self._is_admin(update.effective_user.id):
@@ -132,40 +136,37 @@ class TwitterBotTelegram:
             return
 
         welcome_text = """
-Twitter Bot System
+🤖 **Twitter Bot System**
 
 Welcome to your Twitter automation command center!
 
-Available Commands:
-• `/help` - Show all commands
-• `/addbot <cookie_file>` - Add new worker bot
-• `/post <url>` - Engage with post (like, comment, retweet)
-• `/quote <keyword> "<message>"` - Quote tweets with mentions
-• `/status` - Show system status
-• `/logs` - View recent logs
-• `/test` - Test bot authentication and functionality
-• `/reinit` - Reinitialize bot authentication
-• `/version` - Check Twikit version and capabilities
-• `/testlogin` - Test if login is blocked by Cloudflare
-• `/reactivate` - Reactivate inactive bots
-• `/checkduplicates` - Check for duplicate auth tokens
-• `/cleanup` - Remove inactive/failed bots
-• `/savecookies` - Save all bot cookies to files
-
-🔧Bot Management:
-• `/listbots` - List all worker bots
-• `/syncfollows` - Sync mutual following
-• `/removebot <bot_id>` - Remove worker bot
-
-Monitoring:
-• `/stats` - Show statistics
-• `/queue` - Show task queue status
-• `/pool <keyword>` - Show user pool status
-
-Type `/help` for detailed command information.
+Choose an action from the menu below:
         """
 
-        await update.message.reply_text(welcome_text)
+        # Create main menu keyboard
+        keyboard = [
+            [
+                InlineKeyboardButton("📊 Status", callback_data="menu_status"),
+                InlineKeyboardButton("🤖 Bot Management", callback_data="menu_bots"),
+            ],
+            [
+                InlineKeyboardButton("🎯 Engagement", callback_data="menu_engagement"),
+                InlineKeyboardButton("🔍 Search & Pools", callback_data="menu_search"),
+            ],
+            [
+                InlineKeyboardButton("📈 Statistics", callback_data="menu_stats"),
+                InlineKeyboardButton("⚙️ System", callback_data="menu_system"),
+            ],
+            [
+                InlineKeyboardButton("📋 Help", callback_data="menu_help"),
+                InlineKeyboardButton("📝 Logs", callback_data="menu_logs"),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(
+            welcome_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
@@ -1814,6 +1815,458 @@ Bot Status:
 
         except Exception as e:
             self.logger.error(f"Error stopping system: {e}")
+
+    async def handle_callback_query(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle inline keyboard button presses"""
+        query = update.callback_query
+        await query.answer()
+
+        if not self._is_admin(query.from_user.id):
+            await query.edit_message_text("❌ Access denied. You are not an admin.")
+            return
+
+        data = query.data
+
+        if data == "menu_status":
+            await self._show_status_menu(query)
+        elif data == "menu_bots":
+            await self._show_bot_management_menu(query)
+        elif data == "menu_engagement":
+            await self._show_engagement_menu(query)
+        elif data == "menu_search":
+            await self._show_search_menu(query)
+        elif data == "menu_stats":
+            await self._show_stats_menu(query)
+        elif data == "menu_system":
+            await self._show_system_menu(query)
+        elif data == "menu_help":
+            await self._show_help_menu(query)
+        elif data == "menu_logs":
+            await self._show_logs_menu(query)
+        elif data == "back_to_main":
+            await self._show_main_menu(query)
+        elif data.startswith("bot_"):
+            await self._handle_bot_action(query, data)
+        elif data.startswith("engagement_"):
+            await self._handle_engagement_action(query, data)
+        elif data.startswith("system_"):
+            await self._handle_system_action(query, data)
+
+    async def _show_main_menu(self, query):
+        """Show the main menu"""
+        welcome_text = """
+🤖 **Twitter Bot System**
+
+Welcome to your Twitter automation command center!
+
+Choose an action from the menu below:
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("📊 Status", callback_data="menu_status"),
+                InlineKeyboardButton("🤖 Bot Management", callback_data="menu_bots"),
+            ],
+            [
+                InlineKeyboardButton("🎯 Engagement", callback_data="menu_engagement"),
+                InlineKeyboardButton("🔍 Search & Pools", callback_data="menu_search"),
+            ],
+            [
+                InlineKeyboardButton("📈 Statistics", callback_data="menu_stats"),
+                InlineKeyboardButton("⚙️ System", callback_data="menu_system"),
+            ],
+            [
+                InlineKeyboardButton("📋 Help", callback_data="menu_help"),
+                InlineKeyboardButton("📝 Logs", callback_data="menu_logs"),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            welcome_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_status_menu(self, query):
+        """Show status menu"""
+        # Get actual status
+        active_workers = len(self.worker_manager.get_active_workers())
+        total_workers = len(self.worker_manager.get_all_workers())
+
+        status_text = f"""
+📊 **System Status**
+
+🤖 **Bots:** {active_workers}/{total_workers} active
+🔄 **Tasks:** Running
+🌐 **Server:** VPS (152.114.193.126)
+📅 **Last Update:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+Choose an action:
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("🔄 Refresh Status", callback_data="menu_status"),
+                InlineKeyboardButton("🤖 View All Bots", callback_data="menu_bots"),
+            ],
+            [
+                InlineKeyboardButton("📈 Detailed Stats", callback_data="menu_stats"),
+                InlineKeyboardButton("📝 View Logs", callback_data="menu_logs"),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            status_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_bot_management_menu(self, query):
+        """Show bot management menu"""
+        bots = self.worker_manager.get_all_workers()
+
+        bot_text = f"""
+🤖 **Bot Management**
+
+Total Bots: {len(bots)}
+
+Choose an action:
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("➕ Add Bot", callback_data="bot_add"),
+                InlineKeyboardButton("📋 List Bots", callback_data="bot_list"),
+            ],
+            [
+                InlineKeyboardButton("🔄 Sync Follows", callback_data="bot_sync"),
+                InlineKeyboardButton("🧹 Cleanup", callback_data="bot_cleanup"),
+            ],
+            [
+                InlineKeyboardButton(
+                    "💾 Save Cookies", callback_data="bot_save_cookies"
+                ),
+                InlineKeyboardButton(
+                    "🔍 Check Duplicates", callback_data="bot_check_duplicates"
+                ),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            bot_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_engagement_menu(self, query):
+        """Show engagement menu"""
+        engagement_text = """
+🎯 **Engagement Actions**
+
+Choose an engagement action:
+
+**Quick Actions:**
+• Like, comment, and retweet posts
+• Quote tweets with mentions
+• Manage user pools
+• Unfollow operations
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "💬 Post Engagement", callback_data="engagement_post"
+                ),
+                InlineKeyboardButton(
+                    "💭 Quote Tweet", callback_data="engagement_quote"
+                ),
+            ],
+            [
+                InlineKeyboardButton("❤️ Like Post", callback_data="engagement_like"),
+                InlineKeyboardButton("🔄 Retweet", callback_data="engagement_retweet"),
+            ],
+            [
+                InlineKeyboardButton("💬 Comment", callback_data="engagement_comment"),
+                InlineKeyboardButton(
+                    "👥 Unfollow", callback_data="engagement_unfollow"
+                ),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            engagement_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_search_menu(self, query):
+        """Show search and pools menu"""
+        search_text = """
+🔍 **Search & Pools**
+
+Manage Twitter search and user pools:
+
+**Features:**
+• Search for tweets by keywords
+• Manage user pools for mentions
+• Refresh user data
+• Track engagement targets
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("🔍 Search Tweets", callback_data="search_tweets"),
+                InlineKeyboardButton("👥 Manage Pools", callback_data="search_pools"),
+            ],
+            [
+                InlineKeyboardButton(
+                    "🔄 Refresh Pools", callback_data="search_refresh"
+                ),
+                InlineKeyboardButton("📊 Pool Stats", callback_data="search_stats"),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            search_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_stats_menu(self, query):
+        """Show statistics menu"""
+        stats_text = """
+📈 **Statistics & Analytics**
+
+View detailed system statistics:
+
+**Available Stats:**
+• Engagement metrics
+• Bot performance
+• Task completion rates
+• System health
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "📊 Engagement Stats", callback_data="stats_engagement"
+                ),
+                InlineKeyboardButton("🤖 Bot Performance", callback_data="stats_bots"),
+            ],
+            [
+                InlineKeyboardButton("⚡ Task Queue", callback_data="stats_queue"),
+                InlineKeyboardButton(
+                    "💾 Database Stats", callback_data="stats_database"
+                ),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            stats_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_system_menu(self, query):
+        """Show system menu"""
+        system_text = """
+⚙️ **System Management**
+
+System administration and maintenance:
+
+**Available Actions:**
+• Test system components
+• Reinitialize bots
+• Version information
+• System diagnostics
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("🧪 Test System", callback_data="system_test"),
+                InlineKeyboardButton("🔄 Reinitialize", callback_data="system_reinit"),
+            ],
+            [
+                InlineKeyboardButton("📋 Version Info", callback_data="system_version"),
+                InlineKeyboardButton(
+                    "🔧 Diagnostics", callback_data="system_diagnostics"
+                ),
+            ],
+            [
+                InlineKeyboardButton("💾 Backup", callback_data="system_backup"),
+                InlineKeyboardButton("🔍 Test Login", callback_data="system_testlogin"),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            system_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_help_menu(self, query):
+        """Show help menu"""
+        help_text = """
+📋 **Help & Commands**
+
+**Quick Commands:**
+• `/start` - Show main menu
+• `/help` - Detailed command reference
+• `/status` - System status
+• `/logs` - View recent logs
+
+**Bot Management:**
+• `/addbot` - Add new bot
+• `/listbots` - List all bots
+• `/removebot <id>` - Remove bot
+
+**Engagement:**
+• `/post <url>` - Engage with post
+• `/quote <keyword> "<text>"` - Quote tweet
+• `/like <url>` - Like post
+• `/comment <url> "<text>"` - Comment
+
+Use the menu buttons for easy access!
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("📖 Full Help", callback_data="help_full"),
+                InlineKeyboardButton("💡 Tips", callback_data="help_tips"),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            help_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_logs_menu(self, query):
+        """Show logs menu"""
+        logs_text = """
+📝 **System Logs**
+
+View recent system activity and logs:
+
+**Log Types:**
+• System logs
+• Bot activity
+• Error logs
+• Engagement logs
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("📋 Recent Logs", callback_data="logs_recent"),
+                InlineKeyboardButton("❌ Error Logs", callback_data="logs_errors"),
+            ],
+            [
+                InlineKeyboardButton("🤖 Bot Logs", callback_data="logs_bots"),
+                InlineKeyboardButton("🎯 Activity Logs", callback_data="logs_activity"),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            logs_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _handle_bot_action(self, query, data):
+        """Handle bot management actions"""
+        if data == "bot_add":
+            await query.edit_message_text(
+                "🤖 **Add Bot**\n\n"
+                "Choose how to add a bot:\n"
+                "• Upload cookie file and use `/addbot <filename>`\n"
+                "• Use `/addbotjson <json_data>` for direct JSON\n"
+                "• Use `/addbotlogin <username> <password>` for login\n\n"
+                "Or use the commands directly!",
+                parse_mode="Markdown",
+            )
+        elif data == "bot_list":
+            await query.edit_message_text(
+                "📋 **Bot List**\n\n"
+                "Use `/listbots` to see all your bots with their status.",
+                parse_mode="Markdown",
+            )
+        elif data == "bot_sync":
+            await query.edit_message_text(
+                "🔄 **Sync Follows**\n\n"
+                "Use `/syncfollows` to sync mutual following between all bots.",
+                parse_mode="Markdown",
+            )
+        elif data == "bot_cleanup":
+            await query.edit_message_text(
+                "🧹 **Cleanup**\n\n"
+                "Use `/cleanup` to remove inactive/failed bots from the database.",
+                parse_mode="Markdown",
+            )
+
+    async def _handle_engagement_action(self, query, data):
+        """Handle engagement actions"""
+        if data == "engagement_post":
+            await query.edit_message_text(
+                "💬 **Post Engagement**\n\n"
+                "Use `/post <url>` to like, comment, and retweet a post.",
+                parse_mode="Markdown",
+            )
+        elif data == "engagement_quote":
+            await query.edit_message_text(
+                "💭 **Quote Tweet**\n\n"
+                'Use `/quote <keyword> "<message>"` to quote tweets with mentions.',
+                parse_mode="Markdown",
+            )
+        elif data == "engagement_like":
+            await query.edit_message_text(
+                "❤️ **Like Post**\n\nUse `/like <url>` to like a specific post.",
+                parse_mode="Markdown",
+            )
+        elif data == "engagement_retweet":
+            await query.edit_message_text(
+                "🔄 **Retweet**\n\nUse `/retweet <url>` to retweet a specific post.",
+                parse_mode="Markdown",
+            )
+        elif data == "engagement_comment":
+            await query.edit_message_text(
+                '💬 **Comment**\n\nUse `/comment <url> "<text>"` to comment on a post.',
+                parse_mode="Markdown",
+            )
+        elif data == "engagement_unfollow":
+            await query.edit_message_text(
+                "👥 **Unfollow**\n\n"
+                "Use `/unfollow <bot_id>` or `/unfollow all` to unfollow users.",
+                parse_mode="Markdown",
+            )
+
+    async def _handle_system_action(self, query, data):
+        """Handle system actions"""
+        if data == "system_test":
+            await query.edit_message_text(
+                "🧪 **Test System**\n\n"
+                "Use `/test` to test bot authentication and functionality.",
+                parse_mode="Markdown",
+            )
+        elif data == "system_reinit":
+            await query.edit_message_text(
+                "🔄 **Reinitialize**\n\n"
+                "Use `/reinit` to reinitialize bot authentication for all workers.",
+                parse_mode="Markdown",
+            )
+        elif data == "system_version":
+            await query.edit_message_text(
+                "📋 **Version Info**\n\n"
+                "Use `/version` to check Twikit version and capabilities.",
+                parse_mode="Markdown",
+            )
+        elif data == "system_testlogin":
+            await query.edit_message_text(
+                "🔍 **Test Login**\n\n"
+                "Use `/testlogin` to test if login is blocked by Cloudflare.",
+                parse_mode="Markdown",
+            )
 
 
 async def main():
