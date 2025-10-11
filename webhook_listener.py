@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 TELEGRAM_TOKEN = "8350919686:AAG-VPxwYixmm-wpt0Gih37cx2d9mEoyTj4"
-ADMIN_CHAT_ID = "YOUR_TELEGRAM_USER_ID"  # Replace with your actual user ID
+ADMIN_CHAT_ID = "1724099455"  # Replace with your actual user ID
 PROJECT_PATH = "/root/Twitter-bot"
 WEBHOOK_SECRET = "your-secret-key-here"  # Optional: for security
 
