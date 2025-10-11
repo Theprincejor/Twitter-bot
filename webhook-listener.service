@@ -1,0 +1,15 @@
+[Unit]
+Description=GitHub Webhook Listener
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/Twitter-bot
+Environment=PATH=/root/Twitter-bot/bot_env/bin
+ExecStart=/root/Twitter-bot/bot_env/bin/python webhook_listener.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

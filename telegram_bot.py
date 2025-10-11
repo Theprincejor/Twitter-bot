@@ -129,6 +129,10 @@ class TwitterBotTelegram:
         # Callback query handler for inline keyboards
         self.application.add_handler(CallbackQueryHandler(self.handle_callback_query))
 
+        # Update and restart commands
+        self.application.add_handler(CommandHandler("update", self.update_command))
+        self.application.add_handler(CommandHandler("restart", self.restart_command))
+
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         if not self._is_admin(update.effective_user.id):
@@ -187,6 +191,10 @@ Bot Management:
 • `/delete <bot_id>` - Permanently delete a bot
 • `/listbots` - List all worker bots and their status
 • `/syncfollows` - Sync mutual following between all bots
+
+System Management:
+• `/update` - Pull latest code from GitHub and restart bot
+• `/restart` - Restart bot without updating code
 
 🎯 Engagement Commands:
 • `/post <url>` - Like, comment, and retweet a specific post
@@ -1816,6 +1824,76 @@ Bot Status:
         except Exception as e:
             self.logger.error(f"Error stopping system: {e}")
 
+    async def update_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /update command to pull latest code and restart bot"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            await update.message.reply_text("🔄 Updating bot from GitHub...")
+
+            # Pull latest changes
+            import subprocess
+
+            result = subprocess.run(
+                ["git", "pull", "origin", "main"],
+                capture_output=True,
+                text=True,
+                cwd="/root/Twitter-bot",
+            )
+
+            if result.returncode == 0:
+                if "Already up to date" in result.stdout:
+                    await update.message.reply_text("✅ Bot is already up to date!")
+                else:
+                    await update.message.reply_text(
+                        f"✅ Update successful!\n\n"
+                        f"Changes:\n```\n{result.stdout[:500]}\n```\n"
+                        f"🔄 Restarting bot...",
+                        parse_mode="Markdown",
+                    )
+
+                    # Restart the bot
+                    await self.restart_bot()
+
+            else:
+                await update.message.reply_text(
+                    f"❌ Update failed:\n```\n{result.stderr}\n```",
+                    parse_mode="Markdown",
+                )
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error during update: {str(e)}")
+
+    async def restart_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /restart command to restart bot without updating"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            await update.message.reply_text("🔄 Restarting bot...")
+            await self.restart_bot()
+            await update.message.reply_text("✅ Bot restarted successfully!")
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error restarting bot: {str(e)}")
+
+    async def restart_bot(self):
+        """Restart the bot process"""
+        try:
+            # Stop current bot
+            await self.stop_system()
+
+            # Start new process
+            import subprocess
+
+            subprocess.Popen(["python", "main.py"], cwd="/root/Twitter-bot")
+
+        except Exception as e:
+            self.logger.error(f"Error restarting bot: {e}")
+
     async def handle_callback_query(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
@@ -2097,6 +2175,10 @@ System administration and maintenance:
                 InlineKeyboardButton("💾 Backup", callback_data="system_backup"),
                 InlineKeyboardButton("🔍 Test Login", callback_data="system_testlogin"),
             ],
+            [
+                InlineKeyboardButton("⬆️ Update Bot", callback_data="system_update"),
+                InlineKeyboardButton("🔄 Restart Bot", callback_data="system_restart"),
+            ],
             [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -2265,6 +2347,18 @@ View recent system activity and logs:
             await query.edit_message_text(
                 "🔍 **Test Login**\n\n"
                 "Use `/testlogin` to test if login is blocked by Cloudflare.",
+                parse_mode="Markdown",
+            )
+        elif data == "system_update":
+            await query.edit_message_text(
+                "⬆️ **Update Bot**\n\n"
+                "Use `/update` to pull latest code from GitHub and restart the bot.",
+                parse_mode="Markdown",
+            )
+        elif data == "system_restart":
+            await query.edit_message_text(
+                "🔄 **Restart Bot**\n\n"
+                "Use `/restart` to restart the bot without updating code.",
                 parse_mode="Markdown",
             )
 
