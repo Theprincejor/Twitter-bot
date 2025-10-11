@@ -98,7 +98,7 @@ chmod +x setup_webhook.sh
 ### **4. Test the System**
 ```bash
 # Test all components
-python test_update_system.py
+python3 test_update_system.py
 
 # Test webhook health
 curl http://152.114.193.126:8080/health
@@ -162,7 +162,7 @@ sudo systemctl stop webhook-listener.service
 ### **Testing Commands**
 ```bash
 # Test system components
-python test_update_system.py
+python3 test_update_system.py
 
 # Test webhook endpoints
 curl http://localhost:8080/health

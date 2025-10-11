@@ -5,7 +5,7 @@ echo "🔧 Setting up GitHub Webhook Listener..."
 
 # Install required dependencies
 echo "📦 Installing dependencies..."
-pip install flask psutil
+pip3 install flask psutil
 
 # Copy service file to systemd
 echo "⚙️ Setting up systemd service..."
@@ -40,4 +40,4 @@ echo "   - /health - Health check"
 echo "   - /status - Detailed status"
 echo ""
 echo "🧪 Test the system:"
-echo "   - python test_update_system.py"
+echo "   - python3 test_update_system.py"

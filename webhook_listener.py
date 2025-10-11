@@ -37,7 +37,7 @@ def find_bot_process():
     """Find the running bot process"""
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
-            if proc.info["name"] == "python" and "main.py" in " ".join(
+            if proc.info["name"] in ["python", "python3"] and "main.py" in " ".join(
                 proc.info["cmdline"]
             ):
                 return proc.info["pid"]
@@ -73,7 +73,7 @@ def update_and_restart_bot():
             time.sleep(2)
 
             # Start new bot process
-            subprocess.Popen(["python", "main.py"], cwd=PROJECT_PATH)
+            subprocess.Popen(["python3", "main.py"], cwd=PROJECT_PATH)
             logger.info("Started new bot process")
 
             return True, "Bot updated and restarted", result.stdout

@@ -14,7 +14,7 @@ def find_bot_process():
     """Find the running bot process"""
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
-            if proc.info["name"] == "python" and "main.py" in " ".join(
+            if proc.info["name"] in ["python", "python3"] and "main.py" in " ".join(
                 proc.info["cmdline"]
             ):
                 return proc.info["pid"]
