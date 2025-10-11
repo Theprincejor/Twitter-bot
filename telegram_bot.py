@@ -2089,8 +2089,8 @@ Bot Status:
             # Stop current bot
             await self.stop_system()
 
-            # Start new process
-            subprocess.Popen(["python3", "main.py"], cwd="/root/Twitter-bot")
+            # Start new process with the correct file
+            subprocess.Popen(["python3", "telegram_bot.py"], cwd="/root/Twitter-bot")
 
         except Exception as e:
             self.logger.error(f"Error restarting bot: {e}")
