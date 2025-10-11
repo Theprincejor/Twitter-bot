@@ -38,7 +38,9 @@ def find_bot_process():
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
             cmdline = " ".join(proc.info["cmdline"])
-            if proc.info["name"] in ["python", "python3"] and ("telegram_bot.py" in cmdline or "main.py" in cmdline):
+            if proc.info["name"] in ["python", "python3"] and (
+                "telegram_bot.py" in cmdline or "main.py" in cmdline
+            ):
                 return proc.info["pid"]
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
@@ -88,11 +90,11 @@ def github_webhook():
     """Handle GitHub webhook"""
     try:
         # Check Content-Type
-        content_type = request.headers.get('Content-Type', '')
+        content_type = request.headers.get("Content-Type", "")
         logger.info(f"Received webhook with Content-Type: {content_type}")
-        
+
         # Get the payload - handle both JSON and form data
-        if 'application/json' in content_type:
+        if "application/json" in content_type:
             payload = request.json
         else:
             # Try to parse as JSON anyway
@@ -103,7 +105,9 @@ def github_webhook():
 
         if not payload:
             logger.error(f"No payload received. Content-Type: {content_type}")
-            return jsonify({"error": "No payload received", "content_type": content_type}), 400
+            return jsonify(
+                {"error": "No payload received", "content_type": content_type}
+            ), 400
 
         # Check if it's a push to main branch
         if (
