@@ -23,6 +23,9 @@ class TwitterWorker:
         self.bot_id = bot_id
         self.cookie_data = cookie_data
         self.db = db
+        # Initialize logger first
+        self.logger = bot_logger
+        
         # Initialize client with captcha solver if available
         captcha_solver_instance = captcha_solver.get_captcha_solver()
 
@@ -55,8 +58,6 @@ class TwitterWorker:
         self.rate_limited_until = None
         self.captcha_required = False
         self.last_activity = None
-
-        self.logger = bot_logger
 
     async def initialize(self) -> bool:
         """Initialize the Twitter client with cookies and anti-spam measures"""
