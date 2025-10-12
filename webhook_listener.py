@@ -52,7 +52,7 @@ def update_and_restart_bot():
     try:
         # Pull latest changes
         result = subprocess.run(
-            ["git", "pull", "origin", "main"],
+            ["/usr/bin/git", "pull", "origin", "main"],
             capture_output=True,
             text=True,
             cwd=PROJECT_PATH,
