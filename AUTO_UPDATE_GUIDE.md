@@ -1,7 +1,6 @@
 # Auto-Update System Guide
 
 ## Overview
-
 The Twitter bot includes an automatic update system that pulls changes from the GitHub repository whenever new commits are pushed. This document explains how the system works and how to handle local changes.
 
 ## How It Works
