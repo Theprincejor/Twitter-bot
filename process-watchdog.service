@@ -1,0 +1,32 @@
+[Unit]
+Description=Twitter Bot Process Watchdog
+After=network.target twitter-bot.service health-monitor.service auth-monitor.service
+Wants=twitter-bot.service health-monitor.service auth-monitor.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/Twitter-bot
+ExecStart=/usr/bin/python3 process_watchdog.py
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=PYTHONPATH=/root/Twitter-bot
+Environment=PYTHONUNBUFFERED=1
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/root/Twitter-bot
+
+[Install]
+WantedBy=multi-user.target
