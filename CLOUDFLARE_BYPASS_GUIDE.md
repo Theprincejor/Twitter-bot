@@ -8,7 +8,33 @@ When you see this error:
 Recommendation: Use cookie upload method instead
 Commands: /addbot or /addbotjson
 ```
-This means Twitter's Cloudflare protection is blocking automated login attempts. Here are **4 comprehensive solutions** to solve this issue:
+This means Twitter's Cloudflare protection is blocking automated login attempts. Here are **4 comprehensive solutions** to solve this issue:2025trenches, [10/12/2025 1:18 AM]
+📋 **Repository Check**
+
+✅ Bot is already up to date!
+
+2025trenches, [10/12/2025 1:21 AM]
+❌ **Auto-Update Failed**
+
+
+```
+From https://github.com/Theprincejor/Twitter-bot
+ * branch            main       -> FETCH_HEAD
+   ed308ef..81992e6  main       -> origin/main
+warning: Cannot merge binary files: .gitignore (HEAD vs. 81992e630f1f7a4c21c80291e7a3af358358f774)
+
+```
+
+2025trenches, [10/12/2025 1:22 AM]
+❌ **Auto-Update Failed**
+
+```
+error: Pulling is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+
+```
 
 ## 🔧 Solution 1: Automatic Captcha Solving (Recommended)
 
