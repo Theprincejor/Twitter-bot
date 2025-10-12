@@ -70,7 +70,7 @@ class ProcessWatchdog:
         
         # Monitoring intervals
         self.check_interval = 15  # Check every 15 seconds
-        self.detailed_check_interval = 60  # Detailed check every minute
+        self.detailed_check_interval = 3600  # Detailed check every hour (was 60 seconds)
         
         # Tracking
         self.restart_counts = {}
