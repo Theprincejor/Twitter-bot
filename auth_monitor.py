@@ -38,7 +38,7 @@ class TwitterAuthMonitor:
         
         # Telegram bot for notifications
         self.telegram_bot = None
-        self.admin_chat_id = self.config.ADMIN_CHAT_ID
+        self.admin_chat_id = self.config.TELEGRAM_ADMIN_IDS[0] if self.config.TELEGRAM_ADMIN_IDS else None
         
     async def initialize(self):
         """Initialize the auth monitor"""
