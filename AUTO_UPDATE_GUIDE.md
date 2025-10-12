@@ -67,7 +67,39 @@ If you encounter issues with the auto-update system:
    - Ensure the webhook is pointing to `http://your-vps-ip:8080/webhook`
    - Check that the webhook is active and receiving events
 
-3. If updates are still failing, you can manually update the bot:
+3. If you receive "Local changes would be overwritten" errors:
+   ```
+   # Create backup directory
+   mkdir -p local_backups
+   
+   # Backup modified files
+   cp process_watchdog.py local_backups/process_watchdog.py.backup
+   cp webhook_listener.py local_backups/webhook_listener.py.backup
+   
+   # Force update
+   git fetch origin main
+   git reset --hard origin/main
+   
+   # Restart services
+   systemctl restart webhook-listener.service
+   systemctl restart process-watchdog.service
+   systemctl restart twitter-bot.service
+   ```
+
+4. If you see contradictory health messages (e.g., "Healthy" but "Inactive"):
+   ```
+   # Check actual service status
+   systemctl status webhook-listener.service
+   
+   # Restart the service if needed
+   systemctl restart webhook-listener.service
+   
+   # Check if the process is running but service is inactive
+   ps aux | grep webhook_listener.py
+   ```
+   This can happen if the process is running but the systemd service is inactive.
+
+5. If updates are still failing, you can manually update the bot:
    ```
    cd /root/Twitter-bot
    git fetch origin main

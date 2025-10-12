@@ -8,6 +8,7 @@ import subprocess
 import logging
 import os
 import signal
+import sys
 import psutil
 from datetime import datetime
 from flask import Flask, request, jsonify
@@ -285,5 +286,27 @@ def webhook_status():
 
 
 if __name__ == "__main__":
-    logger.info("Starting GitHub webhook listener...")
-    app.run(host="0.0.0.0", port=8080, debug=False)
+    try:
+        # Ensure we're in the correct directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(script_dir)
+        
+        # Log startup information
+        logger.info("Starting GitHub webhook listener...")
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Project path: {PROJECT_PATH}")
+        
+        # Check if backup directory exists and create it if not
+        backup_dir = os.path.join(PROJECT_PATH, "local_backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        logger.info(f"Backup directory: {backup_dir}")
+        
+        # Start the Flask app
+        app.run(host="0.0.0.0", port=8080, debug=False)
+    except Exception as e:
+        logger.error(f"Failed to start webhook listener: {e}")
+        # Log the full traceback for better debugging
+        import traceback
+        logger.error(traceback.format_exc())
+        # Exit with error code
+        sys.exit(1)
