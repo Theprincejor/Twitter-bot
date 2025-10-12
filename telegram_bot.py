@@ -1358,7 +1358,7 @@ Bot Status:
                 test_results.append(f"✗ User info error: {str(e)}")
 
             # Test 4: Try to create a simple test tweet
-            test_text = f"Test tweet from bot {worker.bot_id} at {datetime.now().strftime('%H:%M:%S')}"
+            test_text = "Hello Twitter! 👋"
             try:
                 await worker.client.create_tweet(text=test_text)
                 test_results.append("✓ Test tweet created successfully")
