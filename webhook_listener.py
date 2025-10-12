@@ -9,6 +9,7 @@ import logging
 import os
 import signal
 import psutil
+from datetime import datetime
 from flask import Flask, request, jsonify
 from telegram import Bot
 import asyncio
@@ -48,39 +49,130 @@ def find_bot_process():
 
 
 def update_and_restart_bot():
-    """Update and restart the bot"""
+    """Update and restart the bot with local changes backup"""
     try:
-        # Pull latest changes
-        result = subprocess.run(
-            ["/usr/bin/git", "pull", "origin", "main"],
+        # Check for local changes
+        status_result = subprocess.run(
+            ["/usr/bin/git", "status", "--porcelain"],
             capture_output=True,
             text=True,
             cwd=PROJECT_PATH,
         )
+        
+        local_changes = []
+        backup_info = ""
+        
+        # If there are local changes, back them up
+        if status_result.stdout.strip():
+            logger.info("Local changes detected, creating backups...")
+            
+            # Create backup directory if it doesn't exist
+            backup_dir = os.path.join(PROJECT_PATH, "local_backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # Parse modified files from git status
+            for line in status_result.stdout.strip().split("\n"):
+                if line.strip():
+                    # Extract filename (works for modified, added, etc.)
+                    status_code = line[:2].strip()
+                    file_path = line[3:].strip()
+                    
+                    # Only backup modified files that exist
+                    if os.path.exists(os.path.join(PROJECT_PATH, file_path)):
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        backup_filename = f"{file_path}.{timestamp}.bak"
+                        backup_path = os.path.join(backup_dir, backup_filename)
+                        
+                        # Create directory structure if needed
+                        os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+                        
+                        # Copy the file to backup
+                        try:
+                            subprocess.run(
+                                ["cp", os.path.join(PROJECT_PATH, file_path), backup_path],
+                                check=True
+                            )
+                            local_changes.append(file_path)
+                            logger.info(f"Backed up {file_path} to {backup_path}")
+                        except Exception as e:
+                            logger.error(f"Failed to backup {file_path}: {e}")
+            
+            if local_changes:
+                backup_info = f"Local changes were backed up: {', '.join(local_changes[:3])}"
+                if len(local_changes) > 3:
+                    backup_info += f" and {len(local_changes) - 3} more files"
+        
+        # Force update using fetch and reset
+        fetch_result = subprocess.run(
+            ["/usr/bin/git", "fetch", "origin", "main"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_PATH,
+        )
+        
+        if fetch_result.returncode != 0:
+            return False, "Git fetch failed", fetch_result.stderr
+        
+        # Get current commit hash before reset
+        before_commit = subprocess.run(
+            ["/usr/bin/git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_PATH,
+        ).stdout.strip()
+        
+        # Reset to origin/main
+        reset_result = subprocess.run(
+            ["/usr/bin/git", "reset", "--hard", "origin/main"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_PATH,
+        )
+        
+        if reset_result.returncode != 0:
+            return False, "Git reset failed", reset_result.stderr
+        
+        # Get new commit hash after reset
+        after_commit = subprocess.run(
+            ["/usr/bin/git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_PATH,
+        ).stdout.strip()
+        
+        # If commit hasn't changed, we're already up to date
+        if before_commit == after_commit:
+            return True, "Bot is already up to date", "Already up to date"
+        
+        # Get commit log between old and new
+        log_result = subprocess.run(
+            ["/usr/bin/git", "log", "--oneline", f"{before_commit}..{after_commit}"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_PATH,
+        )
+        
+        update_message = log_result.stdout
+        
+        # Add backup info to the output
+        if backup_info:
+            update_message = f"{backup_info}\n\n{update_message}"
+        
+        # Find and kill existing bot process
+        bot_pid = find_bot_process()
+        if bot_pid:
+            os.kill(bot_pid, signal.SIGTERM)
+            logger.info(f"Killed bot process {bot_pid}")
 
-        if result.returncode == 0:
-            if "Already up to date" in result.stdout:
-                return True, "Bot is already up to date", result.stdout
+        # Wait a moment for process to die
+        import time
+        time.sleep(2)
 
-            # Find and kill existing bot process
-            bot_pid = find_bot_process()
-            if bot_pid:
-                os.kill(bot_pid, signal.SIGTERM)
-                logger.info(f"Killed bot process {bot_pid}")
+        # Start new bot process
+        subprocess.Popen(["python3", "telegram_bot.py"], cwd=PROJECT_PATH)
+        logger.info("Started new bot process")
 
-            # Wait a moment for process to die
-            import time
-
-            time.sleep(2)
-
-            # Start new bot process
-            subprocess.Popen(["python3", "telegram_bot.py"], cwd=PROJECT_PATH)
-            logger.info("Started new bot process")
-
-            return True, "Bot updated and restarted", result.stdout
-        else:
-            return False, "Git pull failed", result.stderr
-
+        return True, "Bot updated and restarted", update_message
     except Exception as e:
         return False, f"Error during update: {str(e)}", ""
 
