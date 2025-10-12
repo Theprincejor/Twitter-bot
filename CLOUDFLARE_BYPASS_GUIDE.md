@@ -13,7 +13,6 @@ This means Twitter's Cloudflare protection is blocking automated login attempts.
 ## 🔧 Solution 1: Automatic Captcha Solving (Recommended)
 
 
-
 ### Step 1: Get Capsolver API Key
 1. Visit [https://capsolver.com](https://capsolver.com)
 2. Create an account and get your API key
