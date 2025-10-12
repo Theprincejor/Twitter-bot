@@ -98,7 +98,7 @@ def github_webhook():
             payload = request.json
         elif "application/x-www-form-urlencoded" in content_type:
             # GitHub sends payload in form data as 'payload' field
-            payload_str = request.form.get('payload')
+            payload_str = request.form.get("payload")
             if payload_str:
                 try:
                     payload = json.loads(payload_str)
