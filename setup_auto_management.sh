@@ -62,6 +62,27 @@ pip3 install -r requirements.txt
 # Install additional monitoring dependencies
 pip3 install psutil requests
 
+print_status "Configuring Git for automatic updates..."
+
+# Configure Git user (required for automatic updates)
+git config --global user.name "Twitter Bot"
+git config --global user.email "twitter-bot@localhost"
+
+# Ensure Git is properly configured for the project
+cd "$PROJECT_DIR"
+git config user.name "Twitter Bot"
+git config user.email "twitter-bot@localhost"
+
+# Test Git configuration
+print_status "Testing Git configuration..."
+if git config user.name >/dev/null 2>&1 && git config user.email >/dev/null 2>&1; then
+    print_success "Git configured successfully"
+    echo "  Name: $(git config user.name)"
+    echo "  Email: $(git config user.email)"
+else
+    print_warning "Git configuration may need manual setup"
+fi
+
 print_status "Setting up systemd services..."
 
 # Stop existing services if running
