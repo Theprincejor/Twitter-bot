@@ -390,18 +390,20 @@ class ProcessWatchdog:
                 # Detailed check periodically
                 now = time.time()
                 if now - last_detailed_check > self.detailed_check_interval:
-                    # Send detailed status report
+                    # Only send notification if there are issues
                     healthy_count = len([p for p in health_report["processes"].values() if p['overall_health'] == 'healthy'])
                     total_count = len(health_report["processes"])
                     
-                    await self.send_notification(
-                        f"📊 **System Status Report**\n\n"
-                        f"Overall Status: {health_report['overall_status'].upper()}\n"
-                        f"Healthy Processes: {healthy_count}/{total_count}\n"
-                        f"Issues Detected: {len(health_report['issues'])}",
-                        "INFO"
-                    )
+                    if health_report['overall_status'] != 'healthy' or len(health_report['issues']) > 0:
+                        await self.send_notification(
+                            f"⚠️ **System Alert**\n\n"
+                            f"Overall Status: {health_report['overall_status'].upper()}\n"
+                            f"Healthy Processes: {healthy_count}/{total_count}\n"
+                            f"Issues Detected: {len(health_report['issues'])}",
+                            "WARNING"
+                        )
                     
+                    # Still update the last check time even if no notification was sent
                     last_detailed_check = now
                 
                 # Log summary
