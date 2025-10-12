@@ -131,15 +131,15 @@ def github_webhook():
             success, message, output = update_and_restart_bot()
 
             if success:
-                if "already up to date" in message.lower():
-                    notification = (
-                        "📋 **Repository Check**\n\n✅ Bot is already up to date!"
-                    )
-                else:
-                    notification = f"🔄 **Bot Auto-Updated!**\n\n"
-                    notification += f"📝 **Commits:** {len(payload['commits'])}\n"
-                    notification += f"👤 **Author:** {payload['pusher']['name']}\n"
-                    notification += f"📄 **Changes:**\n```\n{output[:300]}\n```"
+                notification = f"🔄 **Bot Auto-Updated!**\n\n"
+                notification += f"📝 **Commits:** {len(payload['commits'])}\n"
+                notification += f"👤 **Author:** {payload['pusher']['name']}\n"
+                
+                # Check if local changes were backed up
+                if "Local changes were backed up" in output:
+                    notification += f"⚠️ **Local changes detected and backed up**\n"
+                
+                notification += f"📄 **Changes:**\n```\n{output[:300]}\n```"
 
                 # Send notification
                 asyncio.run(send_telegram_notification(notification))
