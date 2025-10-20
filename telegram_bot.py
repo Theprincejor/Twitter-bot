@@ -841,13 +841,26 @@ Bot Status:
 
             await asyncio.sleep(random.uniform(2, 5))
 
+            # Check if cookies_file parameter is supported
+            import inspect
+            login_signature = inspect.signature(temp_client.login)
+            cookies_file_supported = "cookies_file" in login_signature.parameters
+
             # Attempt login with username/password
-            login_result = await temp_client.login(
-                auth_info_1=username,
-                auth_info_2=email,  # Optional email
-                password=password,
-                cookies_file=cookie_file_path,  # Auto-save cookies to file
-            )
+            if cookies_file_supported:
+                login_result = await temp_client.login(
+                    auth_info_1=username,
+                    auth_info_2=email,  # Optional email
+                    password=password,
+                    cookies_file=cookie_file_path,  # Auto-save cookies to file
+                )
+            else:
+                # Fallback for older twikit versions
+                login_result = await temp_client.login(
+                    auth_info_1=username,
+                    auth_info_2=email,  # Optional email
+                    password=password,
+                )
 
             # Check if login was successful
             if login_result:
@@ -861,6 +874,13 @@ Bot Status:
                     )
                     return
 
+                # If cookies_file is not supported, manually save cookies to file
+                if not cookies_file_supported:
+                    try:
+                        temp_client.save_cookies(cookie_file_path)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to save cookies to file: {e}")
+
                 # Add bot to database
                 success = self.db.add_bot(bot_id, cookies)
 
@@ -869,10 +889,11 @@ Bot Status:
                     worker_success = await self.worker_manager.add_bot(bot_id, cookies)
 
                     if worker_success:
+                        cookie_save_method = "automatically" if cookies_file_supported else "manually"
                         await update.message.reply_text(
                             f"Bot {bot_id} added successfully via login!\n"
                             f"Username: {username}\n"
-                            f"Cookies saved to: {cookie_file_path}\n"
+                            f"Cookies saved to: {cookie_file_path} ({cookie_save_method})\n"
                             f"Bot is now active and ready to use!"
                         )
 
@@ -916,9 +937,9 @@ Bot Status:
                 )
             elif "cookies_file" in error_msg:
                 await update.message.reply_text(
-                    "Your Twikit version doesn't support automatic cookie saving.\n"
-                    "Login successful but cookies not saved to file.\n"
-                    "Use /savecookies to save cookies manually."
+                    "Login failed due to cookies_file parameter issue.\n"
+                    "This should not happen with the updated code.\n"
+                    "Please try again or contact support."
                 )
             else:
                 await update.message.reply_text(
