@@ -2631,7 +2631,7 @@ async def main():
     bot = TwitterBotTelegram()
 
     try:
-        success = await bot.start()
+        success = await bot.start_system()
         if not success:
             return
 
@@ -2641,11 +2641,11 @@ async def main():
 
     except KeyboardInterrupt:
         print("\nShutting down...")
-        await bot.stop()
+        await bot.stop_system()
 
     except Exception as e:
         print(f"Fatal error: {e}")
-        await bot.stop()
+        await bot.stop_system()
 
 
     async def _show_bot_management_menu(self, query):
