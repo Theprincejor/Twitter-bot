@@ -30,16 +30,20 @@ class CaptchaSolver:
     def _initialize_capsolver(self):
         """Initialize Capsolver for automatic captcha solving"""
         try:
-            from twikit import Capsolver
-
-            self.capsolver = Capsolver(
-                api_key=self.config.CAPSOLVER_API_KEY,
-                max_attempts=self.config.CAPSOLVER_MAX_ATTEMPTS,
-                get_result_interval=self.config.CAPSOLVER_RESULT_INTERVAL,
-            )
-            print("✅ Capsolver initialized successfully")
+            import capsolver
+            
+            # Set the API key
+            capsolver.api_key = self.config.CAPSOLVER_API_KEY
+            
+            # Test the API key
+            balance = capsolver.balance()
+            if balance.get('errorId') == 0:
+                self.capsolver = capsolver
+                print(f"✅ Capsolver initialized successfully - Balance: ${balance.get('balance', 0)}")
+            else:
+                print(f"❌ Capsolver API key invalid: {balance}")
         except ImportError:
-            print("⚠️ Capsolver not available - install twikit with captcha support")
+            print("⚠️ Capsolver not available - install capsolver package")
         except Exception as e:
             print(f"❌ Failed to initialize Capsolver: {e}")
 
