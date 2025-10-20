@@ -43,6 +43,9 @@ class Config:
     # Cloudflare bypass configuration
     USE_CLOUDSCRAPER = os.getenv("USE_CLOUDSCRAPER", "false").lower() == "true"
     CLOUDSCRAPER_DELAY = int(os.getenv("CLOUDSCRAPER_DELAY", "2"))
+    
+    # Proxy configuration
+    PROXY_URL = os.getenv("PROXY_URL", "")
 
     @classmethod
     def validate_config(cls) -> Dict[str, Any]:
