@@ -611,3 +611,19 @@ class WorkerManager:
                 }
         
         return health_status
+
+    async def resume_rate_limited_workers(self):
+        """Resume workers that are no longer rate limited"""
+        try:
+            resumed_count = 0
+            for worker in self.workers.values():
+                if worker.rate_limited_until and datetime.now() >= worker.rate_limited_until:
+                    worker.rate_limited_until = None
+                    resumed_count += 1
+                    self.logger.info(f"Resumed worker {worker.bot_id} from rate limit")
+            
+            if resumed_count > 0:
+                self.logger.info(f"Resumed {resumed_count} workers from rate limiting")
+                
+        except Exception as e:
+            self.logger.error(f"Error resuming rate limited workers: {e}")
