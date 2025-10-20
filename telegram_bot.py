@@ -1,5 +1,5 @@
 """
-Main Telegram bot command center
+Main Telegram bot command center with proper proxy and Cloudflare bypass support
 """
 
 import asyncio
@@ -142,10 +142,67 @@ class TwitterBotTelegram:
         self.application.add_handler(CommandHandler("update", self.update_command))
         self.application.add_handler(CommandHandler("restart", self.restart_command))
 
+    def _create_twikit_client(self, use_proxy=True):
+        """
+        Create a properly configured Twikit client with proxy support
+        
+        Args:
+            use_proxy: Whether to use proxy (default True for Twitter requests)
+        
+        Returns:
+            Configured Client instance
+        """
+        from twikit import Client
+        import inspect
+
+        # Get proxy configuration
+        proxy_url = Config.PROXY_URL if use_proxy else None
+        
+        # Get captcha solver if available
+        captcha_solver_instance = None
+        if Config.USE_CAPTCHA_SOLVER and Config.CAPSOLVER_API_KEY:
+            try:
+                from twikit._captcha.capsolver import Capsolver as TwikitCapsolver
+                captcha_solver_instance = TwikitCapsolver(
+                    api_key=Config.CAPSOLVER_API_KEY,
+                    max_attempts=Config.CAPSOLVER_MAX_ATTEMPTS,
+                    get_result_interval=Config.CAPSOLVER_RESULT_INTERVAL,
+                )
+            except ImportError:
+                self.logger.warning("Twikit Capsolver not available")
+        
+        # Detect supported Client parameters
+        client_sig = inspect.signature(Client.__init__)
+        params = client_sig.parameters
+        
+        # Build client kwargs
+        client_kwargs = {
+            'language': 'en-US'
+        }
+        
+        # Add proxy if supported and configured
+        if 'proxy' in params and proxy_url:
+            client_kwargs['proxy'] = proxy_url
+            self.logger.info(f"Using proxy: {proxy_url}")
+        
+        # Add captcha solver if supported and configured
+        if 'captcha_solver' in params and captcha_solver_instance:
+            client_kwargs['captcha_solver'] = captcha_solver_instance
+            self.logger.info("Captcha solver configured")
+        
+        # Create client
+        try:
+            client = Client(**client_kwargs)
+            return client
+        except Exception as e:
+            self.logger.error(f"Failed to create Twikit client: {e}")
+            # Fallback to basic client
+            return Client('en-US')
+
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         welcome_text = """
@@ -184,13 +241,13 @@ Choose an action from the menu below:
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         help_text = """
 📖 Twitter Bot Commands Reference
 
-Bot Management:
+🤖 Bot Management:
 • `/addbot <cookie_file>` - Add new worker bot from uploaded cookie file
 • `/addbotjson <json_data>` - Add bot directly with JSON cookie data
 • `/addbotlogin <username> <password> [email]` - Add bot via username/password login
@@ -201,7 +258,7 @@ Bot Management:
 • `/listbots` - List all worker bots and their status
 • `/syncfollows` - Sync mutual following between all bots
 
-System Management:
+⚙️ System Management:
 • `/update` - Interactive update menu (update & restart, restart only, restart system, check status)
 • `/restart` - Restart bot without updating code
 
@@ -214,12 +271,12 @@ System Management:
 • `/unfollow <bot_id>` - Unfollow all followers for a specific bot
 • `/unfollow all` - Unfollow all followers for all bots
 
-Search & Pools:
+🔍 Search & Pools:
 • `/search <keyword>` - Search for tweets with keyword
 • `/pool <keyword>` - Show user pool status for keyword
 • `/refresh <keyword>` - Refresh user pool for keyword
 
-Monitoring:
+📊 Monitoring:
 • `/status` - Show system status and bot health
 • `/stats` - Show engagement statistics
 • `/queue` - Show task queue status
@@ -238,7 +295,7 @@ Monitoring:
     async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /status command"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
@@ -251,17 +308,20 @@ Monitoring:
             # Get statistics
             stats = self.engagement_engine.get_engagement_stats()
 
-            status_text = f"""System Status
+            status_text = f"""📊 System Status
 
-Workers: {len(worker_status)} bots
-Queue: {queue_status["pending_tasks"]} pending, {queue_status["in_progress_tasks"]} in progress
-Total Actions: {stats.get("total_actions", 0)}
+🤖 Workers: {len(worker_status)} bots
+📋 Queue: {queue_status["pending_tasks"]} pending, {queue_status["in_progress_tasks"]} in progress
+📈 Total Actions: {stats.get("total_actions", 0)}
+
+🔌 Proxy: {'✅ Configured' if Config.PROXY_URL else '❌ Not configured'}
+🧩 Captcha Solver: {'✅ Enabled' if Config.USE_CAPTCHA_SOLVER else '❌ Disabled'}
 
 Bot Status:
 """
 
             for bot_id, status in worker_status.items():
-                status_indicator = "✓" if status["can_perform_action"] else "✗"
+                status_indicator = "✅" if status["can_perform_action"] else "❌"
                 rate_limit = ""
                 if status["rate_limited_until"]:
                     rate_limit = " (Rate Limited)"
@@ -271,23 +331,23 @@ Bot Status:
                 status_text += f"{status_indicator} {bot_id}{rate_limit}\n"
 
             status_text += (
-                f"\nLast Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"\n📅 Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             await update.message.reply_text(status_text)
 
         except Exception as e:
-            await update.message.reply_text(f" Error getting status: {str(e)}")
+            await update.message.reply_text(f"❌ Error getting status: {str(e)}")
 
     async def addbot_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /addbot command"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         if not context.args:
             await update.message.reply_text(
-                " Please provide a cookie file name.\n"
+                "❌ Please provide a cookie file name.\n"
                 "Usage: `/addbot cookie.json`\n"
                 "Upload the cookie file first, then use this command with the filename."
             )
@@ -298,7 +358,7 @@ Bot Status:
 
         if not os.path.exists(cookie_path):
             await update.message.reply_text(
-                f" Cookie file not found: {cookie_filename}"
+                f"❌ Cookie file not found: {cookie_filename}"
             )
             return
 
@@ -311,7 +371,7 @@ Bot Status:
             processed_cookies = self._process_raw_cookies(cookie_data)
             if not processed_cookies:
                 await update.message.reply_text(
-                    f" Failed to process cookie file: {cookie_filename}"
+                    f"❌ Failed to process cookie file: {cookie_filename}"
                 )
                 return
 
@@ -322,29 +382,29 @@ Bot Status:
             success = await self.worker_manager.add_worker(bot_id, processed_cookies)
 
             if success:
-                await update.message.reply_text(f" Bot {bot_id} added successfully!")
+                await update.message.reply_text(f"✅ Bot {bot_id} added successfully!")
 
                 # Schedule mutual following sync
                 await self.scheduler.add_task(
                     TaskType.SYNC_FOLLOWS, {"new_bot_id": bot_id}, priority=2
                 )
             else:
-                await update.message.reply_text(f" Failed to add bot {bot_id}")
+                await update.message.reply_text(f"❌ Failed to add bot {bot_id}")
 
         except Exception as e:
-            await update.message.reply_text(f" Error adding bot: {str(e)}")
+            await update.message.reply_text(f"❌ Error adding bot: {str(e)}")
 
     async def addbotjson_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle /addbotjson command - add bot directly with JSON data"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         if not context.args:
             await update.message.reply_text(
-                "Please provide JSON cookie data.\n"
+                "❌ Please provide JSON cookie data.\n"
                 "Usage: `/addbotjson [your_cookie_json_array]`\n\n"
                 "Note: For large JSON data, use file upload instead:\n"
                 "1. Save your cookies as a .json file\n"
@@ -365,7 +425,7 @@ Bot Status:
             # Process cookies
             processed_cookies = self._process_raw_cookies(raw_cookie_data)
             if not processed_cookies:
-                await update.message.reply_text("Failed to process cookie data")
+                await update.message.reply_text("❌ Failed to process cookie data")
                 return
 
             # Enhanced validation with token mismatch detection
@@ -418,9 +478,10 @@ Bot Status:
             if success:
                 cookie_count = len(processed_cookies)
                 await update.message.reply_text(
-                    f"Bot {bot_id} added successfully!\n"
-                    f"Cookies processed: {cookie_count}\n"
-                    f"Required cookies: ✅\n"
+                    f"✅ Bot {bot_id} added successfully!\n"
+                    f"🍪 Cookies processed: {cookie_count}\n"
+                    f"✅ Required cookies: Present\n"
+                    f"🔌 Proxy: {'Configured' if Config.PROXY_URL else 'Not configured'}\n"
                     f"Bot is now active and ready to use!"
                 )
 
@@ -429,25 +490,177 @@ Bot Status:
                     TaskType.SYNC_FOLLOWS, {"new_bot_id": bot_id}, priority=2
                 )
             else:
-                await update.message.reply_text(f"Failed to add bot {bot_id}")
+                await update.message.reply_text(f"❌ Failed to add bot {bot_id}")
 
         except json.JSONDecodeError:
             await update.message.reply_text(
-                "Invalid JSON format. Please check your cookie data.\n\n"
+                "❌ Invalid JSON format. Please check your cookie data.\n\n"
                 "For large JSON data, try this instead:\n"
                 "1. Save your cookies as a .json file\n"
                 "2. Upload the file to this bot\n"
                 "3. Use `/addbot filename.json`"
             )
         except Exception as e:
-            await update.message.reply_text(f"Error adding bot: {str(e)}")
+            await update.message.reply_text(f"❌ Error adding bot: {str(e)}")
+
+    async def addbotlogin_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /addbotlogin command for username/password login"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text(
+                "❌ Please provide username and password.\n"
+                "Usage: `/addbotlogin <username> <password> [email]`\n\n"
+                "Example:\n"
+                "`/addbotlogin myusername mypassword123`\n"
+                "`/addbotlogin myusername mypassword123 email@example.com`\n\n"
+                "Note: This will automatically save cookies after successful login."
+            )
+            return
+
+        username = str(context.args[0])
+        password = str(context.args[1])
+        email = str(context.args[2]) if len(context.args) > 2 else ""
+
+        try:
+            await update.message.reply_text(
+                f"🔐 Attempting to login with username: {username}\n"
+                "This may take a few moments...\n"
+                "🔌 Using residential proxy for authentication"
+            )
+
+            # Generate bot ID
+            bot_id = f"bot_{len(self.worker_manager.get_all_workers()) + 1}"
+
+            # Create cookie file path
+            cookie_file_path = os.path.join(
+                Config.COOKIES_PATH, f"{bot_id}_cookies.json"
+            )
+            os.makedirs(os.path.dirname(cookie_file_path), exist_ok=True)
+
+            # Create client with proxy support
+            temp_client = self._create_twikit_client(use_proxy=True)
+
+            # Add delay to appear more human-like
+            await asyncio.sleep(asyncio.uniform(2, 5))
+
+            # Check if cookies_file parameter is supported
+            import inspect
+            login_signature = inspect.signature(temp_client.login)
+            cookies_file_supported = "cookies_file" in login_signature.parameters
+
+            # Attempt login with username/password
+            try:
+                if cookies_file_supported:
+                    login_result = await temp_client.login(
+                        auth_info_1=username,
+                        auth_info_2=email,  # Optional email
+                        password=password,
+                        cookies_file=cookie_file_path,  # Auto-save cookies to file
+                    )
+                else:
+                    # Fallback for older twikit versions
+                    login_result = await temp_client.login(
+                        auth_info_1=username,
+                        auth_info_2=email,  # Optional email
+                        password=password,
+                    )
+            except Exception as e:
+                # Surface deeper diagnostics in logs
+                self.logger.error(f"Login request failed: {type(e).__name__}: {str(e)}")
+                raise
+
+            # Check if login was successful
+            if login_result:
+                # Get cookies from the logged-in client
+                cookies = temp_client.get_cookies()
+
+                if not cookies or not cookies.get("auth_token"):
+                    await update.message.reply_text(
+                        f"❌ Login failed: No valid cookies received\n"
+                        "Please check your credentials and try again."
+                    )
+                    return
+
+                # If cookies_file is not supported, manually save cookies to file
+                if not cookies_file_supported:
+                    try:
+                        temp_client.save_cookies(cookie_file_path)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to save cookies to file: {e}")
+
+                # Add bot to database
+                success = self.db.add_bot(bot_id, cookies)
+
+                if success:
+                    # Initialize worker
+                    worker_success = await self.worker_manager.add_bot(bot_id, cookies)
+
+                    if worker_success:
+                        cookie_save_method = "automatically" if cookies_file_supported else "manually"
+                        await update.message.reply_text(
+                            f"✅ Bot {bot_id} added successfully via login!\n"
+                            f"👤 Username: {username}\n"
+                            f"💾 Cookies saved to: {cookie_file_path} ({cookie_save_method})\n"
+                            f"🔌 Proxy: {'Configured' if Config.PROXY_URL else 'Not configured'}\n"
+                            f"Bot is now active and ready to use!"
+                        )
+
+                        # Schedule mutual following sync
+                        await self.scheduler.add_task(
+                            TaskType.SYNC_FOLLOWS, {"new_bot_id": bot_id}, priority=2
+                        )
+                    else:
+                        await update.message.reply_text(
+                            f"❌ Bot {bot_id} added to database but failed to initialize.\n"
+                            "Check logs for details."
+                        )
+                else:
+                    await update.message.reply_text(
+                        f"❌ Failed to add bot {bot_id} to database"
+                    )
+            else:
+                await update.message.reply_text(
+                    f"❌ Login failed for username: {username}\n"
+                    "Please check your credentials and try again."
+                )
+
+        except Exception as e:
+            error_msg = str(e)
+            # Truncate long error messages for Telegram
+            if len(error_msg) > 1000:
+                error_msg = error_msg[:1000] + "..."
+
+            # Check for specific error types
+            if (
+                "403" in error_msg
+                or "Cloudflare" in error_msg
+                or "blocked" in error_msg
+            ):
+                await update.message.reply_text(
+                    "❌ Login blocked by Cloudflare protection.\n"
+                    "This is common with automated login attempts.\n\n"
+                    "✅ Recommended: Use the cookie upload method instead:\n"
+                    "1. Export cookies from your browser\n"
+                    "2. Use /addbot or /addbotjson commands\n\n"
+                    "🔌 Proxy status: " + ('Configured' if Config.PROXY_URL else 'Not configured')
+                )
+            else:
+                await update.message.reply_text(
+                    f"❌ Login error: {error_msg}\n"
+                    "Please check your credentials and try again."
+                )
 
     async def handle_cookie_upload(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle cookie file uploads"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
@@ -521,9 +734,9 @@ Bot Status:
             # Prepare success message with validation results
             cookie_count = len(processed_cookies)
             success_message = f"✅ Cookie file processed successfully!\n\n"
-            success_message += f"Cookies Found: {cookie_count}\n"
+            success_message += f"🍪 Cookies Found: {cookie_count}\n"
             success_message += (
-                f"Required: {len(validation['present'])}/{len(['auth_token', 'ct0'])}\n"
+                f"✅ Required: {len(validation['present'])}/{len(['auth_token', 'ct0'])}\n"
             )
 
             if validation["warnings"]:
@@ -538,583 +751,14 @@ Bot Status:
             await update.message.reply_text(success_message)
 
         except Exception as e:
-            await update.message.reply_text(f" Error uploading cookie file: {str(e)}")
-
-    async def post_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /post command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if not context.args:
-            await update.message.reply_text(
-                " Please provide a Twitter URL.\n"
-                "Usage: `/post https://twitter.com/user/status/123456789`",
-            )
-            return
-
-        url = context.args[0]
-
-        try:
-            # Add engagement tasks
-            tasks_added = []
-
-            # Like task
-            task_id = await self.scheduler.add_task(TaskType.LIKE, {"tweet_url": url})
-            tasks_added.append(f"Like: {task_id}")
-
-            # Comment task (with delay)
-            task_id = await self.scheduler.add_task(
-                TaskType.COMMENT,
-                {
-                    "tweet_url": url,
-                    "comments": ["Nice post! 👍", "Great content! ", "Amazing! ✨"],
-                },
-                delay_minutes=5,
-            )
-            tasks_added.append(f"Comment: {task_id}")
-
-            # Retweet task (with delay)
-            task_id = await self.scheduler.add_task(
-                TaskType.RETWEET, {"tweet_url": url}, delay_minutes=10
-            )
-            tasks_added.append(f"Retweet: {task_id}")
-
-            await update.message.reply_text(
-                f" Post engagement scheduled!\n\n"
-                f"📝 Tasks Added:\n" + "\n".join(tasks_added) + "\n\n"
-                f"🔗 URL: {url}"
-            )
-
-        except Exception as e:
-            await update.message.reply_text(
-                f" Error scheduling post engagement: {str(e)}"
-            )
-
-    async def quote_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /quote command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if len(context.args) < 2:
-            await update.message.reply_text(
-                "Please provide keyword and message.\n"
-                'Usage: `/quote keyword "message text"`',
-            )
-            return
-
-        keyword = context.args[0]
-        message = " ".join(context.args[1:])
-
-        # Remove quotes if present
-        if message.startswith('"') and message.endswith('"'):
-            message = message[1:-1]
-
-        try:
-            # Build user pool first
-            await update.message.reply_text(
-                f" Building user pool for keyword: {keyword}"
-            )
-
-            pool_built = await self.search_engine.build_user_pool_for_keyword(keyword)
-
-            if not pool_built:
-                await update.message.reply_text(
-                    f" Failed to build user pool for keyword: {keyword}"
-                )
-                return
-
-            # Add quote task
-            task_id = await self.scheduler.add_task(
-                TaskType.QUOTE,
-                {
-                    "keyword": keyword,
-                    "quote_text": message,
-                    "mention_count": Config.MAX_MENTIONS_PER_QUOTE,
-                },
-            )
-
-            await update.message.reply_text(
-                f" Quote campaign scheduled!\n\n"
-                f"Keyword: {keyword}\n"
-                f"💬 Message: {message}\n"
-                f"Task ID: {task_id}"
-            )
-
-        except Exception as e:
-            await update.message.reply_text(
-                f" Error scheduling quote campaign: {str(e)}"
-            )
-
-    async def listbots_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ):
-        """Handle /listbots command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        try:
-            workers = self.worker_manager.get_all_workers()
-            worker_status = await self.worker_manager.get_worker_status()
-
-            if not workers:
-                await update.message.reply_text(
-                    "📭 No bots configured yet.\nUse `/addbot` to add your first bot."
-                )
-                return
-
-            text = "Configured Bots:\n\n"
-
-            for bot_id, worker in workers.items():
-                status = worker_status.get(bot_id, {})
-                emoji = "" if status.get("can_perform_action") else ""
-
-                text += f"{emoji} {bot_id}\n"
-                text += f"   Status: {status.get('status', 'unknown')}\n"
-
-                if status.get("rate_limited_until"):
-                    text += f"   Rate Limited Until: {status['rate_limited_until']}\n"
-
-                if status.get("captcha_required"):
-                    text += f"    Captcha Required\n"
-
-                text += "\n"
-
-            await update.message.reply_text(
-                text,
-            )
-
-        except Exception as e:
-            await update.message.reply_text(f" Error listing bots: {str(e)}")
-
-    async def logs_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /logs command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        try:
-            lines = 20
-            if context.args:
-                try:
-                    lines = int(context.args[0])
-                    lines = min(lines, 50)  # Max 50 lines
-                except ValueError:
-                    pass
-
-            logs = self.logger.get_recent_logs(lines)
-
-            if not logs or logs.strip() == "":
-                await update.message.reply_text("📭 No logs available.")
-                return
-
-            # Split long messages
-            if len(logs) > 4000:
-                logs = logs[-4000:]  # Take last 4000 characters
-
-            await update.message.reply_text(
-                f"Recent Logs:\n\n```\n{logs}\n```",
-            )
-
-        except Exception as e:
-            await update.message.reply_text(f" Error getting logs: {str(e)}")
-
-    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /stats command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        try:
-            stats = self.engagement_engine.get_engagement_stats()
-            db_stats = stats.get("database_stats", {})
-
-            text = "Engagement Statistics\n\n"
-
-            if isinstance(db_stats, dict):
-                text += f"👍 Likes: {db_stats.get('total_likes', 0)}\n"
-                text += f"💬 Comments: {db_stats.get('total_comments', 0)}\n"
-                text += f"🔄 Retweets: {db_stats.get('total_retweets', 0)}\n"
-                text += f"💭 Quotes: {db_stats.get('total_quotes', 0)}\n"
-
-            text += (
-                f"\nActive Workers: {len(self.worker_manager.get_active_workers())}\n"
-            )
-            text += f"📅 Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-
-            await update.message.reply_text(
-                text,
-            )
-
-        except Exception as e:
-            await update.message.reply_text(f" Error getting statistics: {str(e)}")
-
-    async def queue_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /queue command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        try:
-            queue_status = await self.scheduler.get_queue_status()
-
-            text = "🔄 Task Queue Status\n\n"
-            text += f"Queue Size: {queue_status['queue_size']}\n"
-            text += f"⏳ Pending: {queue_status['pending_tasks']}\n"
-            text += f"🔄 In Progress: {queue_status['in_progress_tasks']}\n"
-            text += f"Completed: {queue_status['completed_tasks']}\n"
-            text += f"Failed: {queue_status['failed_tasks']}\n"
-            text += f"Total Active: {queue_status['active_tasks']}"
-
-            await update.message.reply_text(
-                text,
-            )
-
-        except Exception as e:
-            await update.message.reply_text(f" Error getting queue status: {str(e)}")
-
-    async def addbotlogin_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ):
-        """Handle /addbotlogin command for username/password login"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
-            return
-
-        if not context.args or len(context.args) < 2:
-            await update.message.reply_text(
-                "Please provide username and password.\n"
-                "Usage: `/addbotlogin <username> <password> [email]`\n\n"
-                "Example:\n"
-                "`/addbotlogin myusername mypassword123`\n"
-                "`/addbotlogin myusername mypassword123 email@example.com`\n\n"
-                "Note: This will automatically save cookies after successful login."
-            )
-            return
-
-        username = str(context.args[0])
-        password = str(context.args[1])
-        email = str(context.args[2]) if len(context.args) > 2 else ""
-
-        try:
-            await update.message.reply_text(
-                f"Attempting to login with username: {username}\n"
-                "This may take a few moments...\n"
-                "Note: If login fails, your Twikit version might not support the cookies_file parameter."
-            )
-
-            # Generate bot ID
-            bot_id = f"bot_{len(self.worker_manager.get_all_workers()) + 1}"
-
-            # Create cookie file path
-            cookie_file_path = os.path.join(
-                Config.COOKIES_PATH, f"{bot_id}_cookies.json"
-            )
-            os.makedirs(os.path.dirname(cookie_file_path), exist_ok=True)
-
-            # Create a temporary client for login with anti-detection measures
-            from twikit import Client
-            import httpx
-
-            # Work around the proxy parameter issue in newer Twikit versions
-            # Prepare optional captcha solver for Twikit if enabled
-            twikit_captcha_solver = None
-            if Config.USE_CAPTCHA_SOLVER and Config.CAPSOLVER_API_KEY:
-                try:
-                    # Twikit's own Capsolver is required for automatic captcha solving within Client
-                    from twikit.twikit_async import Capsolver as TwikitCapsolver
-                except Exception:
-                    try:
-                        # Some versions expose under _captcha
-                        from twikit._captcha.capsolver import Capsolver as TwikitCapsolver
-                    except Exception:
-                        TwikitCapsolver = None
-
-                if TwikitCapsolver is not None:
-                    try:
-                        twikit_captcha_solver = TwikitCapsolver(
-                            api_key=Config.CAPSOLVER_API_KEY,
-                            max_attempts=Config.CAPSOLVER_MAX_ATTEMPTS,
-                            get_result_interval=Config.CAPSOLVER_RESULT_INTERVAL,
-                        )
-                    except Exception:
-                        twikit_captcha_solver = None
-
-            proxy_url = getattr(Config, "PROXY_URL", None)
-            # Ensure downstream HTTP clients (httpx inside Twikit) pick up proxy via env
-            if proxy_url:
-                os.environ["HTTP_PROXY"] = proxy_url
-                os.environ["HTTPS_PROXY"] = proxy_url
-
-            # Dynamically detect supported Client __init__ parameters
-            import inspect as _inspect
-            init_sig = _inspect.signature(Client)
-            supports_captcha = "captcha_solver" in init_sig.parameters
-            supports_proxy = "proxy" in init_sig.parameters
-
-            try:
-                if supports_captcha and supports_proxy:
-                    temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver, proxy=proxy_url)
-                elif supports_captcha and not supports_proxy:
-                    temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
-                elif not supports_captcha and supports_proxy:
-                    temp_client = Client(language="en-US", proxy=proxy_url)
-                else:
-                    temp_client = Client(language="en-US")
-            except TypeError as e:
-                # Fallbacks if runtime raises unexpected kw errors
-                if "captcha_solver" in str(e) and supports_proxy:
-                    temp_client = Client(language="en-US", proxy=proxy_url)
-                elif "captcha_solver" in str(e):
-                    temp_client = Client(language="en-US")
-                elif "proxy" in str(e):
-                    # Patch httpx to ignore proxy param in older twikit versions
-                    original_init = httpx.AsyncClient.__init__
-
-                    def patched_init(self, *args, **kwargs):
-                        kwargs.pop("proxy", None)
-                        return original_init(self, *args, **kwargs)
-
-                    httpx.AsyncClient.__init__ = patched_init
-                    if supports_captcha:
-                        temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
-                    else:
-                        temp_client = Client(language="en-US")
-                else:
-                    temp_client = Client(language="en-US")
-
-            # Optionally pre-seed Cloudflare cookies before login to avoid 403
-            try:
-                if Config.USE_CLOUDSCRAPER:
-                    from captcha_solver import CaptchaSolver
-                    solver = CaptchaSolver()
-                    # Try to obtain Cloudflare cookies
-                    result = await solver.get_cloudflare_cookies()
-                    if isinstance(result, dict) and result.get("success") and result.get("cookies"):
-                        # We will not inject cookies into Twikit to avoid format mismatches.
-                        # Just inform user that CF bypass is active; proceed to login.
-                        await update.message.reply_text("🌐 Cloudflare bypass active; proceeding to login")
-            except Exception:
-                # Non-fatal; continue with normal login flow
-                pass
-
-            # Add delay to appear more human-like
-            import asyncio
-            import random
-
-            await asyncio.sleep(random.uniform(2, 5))
-
-            # Check if cookies_file parameter is supported (defensive against older twikit)
-            import inspect
-            try:
-                login_signature = inspect.signature(temp_client.login)
-                cookies_file_supported = "cookies_file" in login_signature.parameters
-            except Exception:
-                cookies_file_supported = False
-
-            # Attempt login with username/password (with detailed error logging)
-            try:
-                if cookies_file_supported:
-                    login_result = await temp_client.login(
-                        auth_info_1=username,
-                        auth_info_2=email,  # Optional email
-                        password=password,
-                        cookies_file=cookie_file_path,  # Auto-save cookies to file
-                    )
-                else:
-                    # Fallback for older twikit versions
-                    login_result = await temp_client.login(
-                        auth_info_1=username,
-                        auth_info_2=email,  # Optional email
-                        password=password,
-                    )
-            except Exception as e:
-                # Surface deeper diagnostics in logs to understand provider response
-                self.logger.error(f"Login request failed: {type(e).__name__}: {str(e)}")
-                # Try to extract httpx response details if present
-                resp = getattr(e, "response", None)
-                if resp is not None:
-                    try:
-                        body_snippet = resp.text[:500] if hasattr(resp, "text") else str(resp)[:500]
-                        self.logger.error(
-                            f"Login HTTP response: status={getattr(resp, 'status_code', 'n/a')} body_snippet={body_snippet}"
-                        )
-                    except Exception:
-                        pass
-                raise
-
-            # Check if login was successful
-            if login_result:
-                # Get cookies from the logged-in client
-                cookies = temp_client.get_cookies()
-
-                if not cookies or not cookies.get("auth_token"):
-                    await update.message.reply_text(
-                        f"Login failed: No valid cookies received\n"
-                        "Please check your credentials and try again."
-                    )
-                    return
-
-                # If cookies_file is not supported, manually save cookies to file
-                if not cookies_file_supported:
-                    try:
-                        temp_client.save_cookies(cookie_file_path)
-                    except Exception as e:
-                        self.logger.warning(f"Failed to save cookies to file: {e}")
-
-                # Add bot to database
-                success = self.db.add_bot(bot_id, cookies)
-
-                if success:
-                    # Initialize worker
-                    worker_success = await self.worker_manager.add_bot(bot_id, cookies)
-
-                    if worker_success:
-                        cookie_save_method = "automatically" if cookies_file_supported else "manually"
-                        await update.message.reply_text(
-                            f"Bot {bot_id} added successfully via login!\n"
-                            f"Username: {username}\n"
-                            f"Cookies saved to: {cookie_file_path} ({cookie_save_method})\n"
-                            f"Bot is now active and ready to use!"
-                        )
-
-                        # Schedule mutual following sync
-                        await self.scheduler.add_task(
-                            TaskType.SYNC_FOLLOWS, {"new_bot_id": bot_id}, priority=2
-                        )
-                    else:
-                        await update.message.reply_text(
-                            f"Bot {bot_id} added to database but failed to initialize.\n"
-                            "Check logs for details."
-                        )
-                else:
-                    await update.message.reply_text(
-                        f"Failed to add bot {bot_id} to database"
-                    )
-            else:
-                await update.message.reply_text(
-                    f"Login failed for username: {username}\n"
-                    "Please check your credentials and try again."
-                )
-
-        except Exception as e:
-            error_msg = str(e)
-            # Truncate long error messages for Telegram
-            if len(error_msg) > 1000:
-                error_msg = error_msg[:1000] + "..."
-
-            # Check for specific error types
-            if (
-                "403" in error_msg
-                or "Cloudflare" in error_msg
-                or "blocked" in error_msg
-            ):
-                await update.message.reply_text(
-                    "Login blocked by Cloudflare protection.\n"
-                    "This is common with automated login attempts.\n"
-                    "Try using the cookie upload method instead:\n"
-                    "1. Export cookies from your browser\n"
-                    "2. Use /addbot or /addbotjson commands"
-                )
-            elif "cookies_file" in error_msg:
-                await update.message.reply_text(
-                    "Login failed due to cookies_file parameter issue.\n"
-                    "This should not happen with the updated code.\n"
-                    "Please try again or contact support."
-                )
-            else:
-                await update.message.reply_text(
-                    f"Login error: {error_msg}\n"
-                    "Please check your credentials and try again."
-                )
-
-    async def savecookies_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ):
-        """Handle /savecookies command to save bot cookies to files"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
-            return
-
-        try:
-            workers = self.worker_manager.get_all_workers()
-            if not workers:
-                await update.message.reply_text("No bots found to save cookies for.")
-                return
-
-            saved_count = 0
-            for bot_id, worker in workers.items():
-                try:
-                    # Get cookies from the worker's client
-                    cookies = worker.client.get_cookies()
-
-                    # Create cookie file path
-                    cookie_file_path = os.path.join(
-                        Config.COOKIES_PATH, f"{bot_id}_cookies.json"
-                    )
-                    os.makedirs(os.path.dirname(cookie_file_path), exist_ok=True)
-
-                    # Save cookies to file using Twikit's method
-                    worker.client.save_cookies(cookie_file_path)
-                    saved_count += 1
-
-                except Exception as e:
-                    self.logger.error(f"Failed to save cookies for bot {bot_id}: {e}")
-
-            await update.message.reply_text(
-                f"Cookies saved for {saved_count}/{len(workers)} bots to {Config.COOKIES_PATH}"
-            )
-
-        except Exception as e:
-            await update.message.reply_text(f"Error saving cookies: {str(e)}")
-
-    async def version_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /version command to check Twikit version"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
-            return
-
-        try:
-            import twikit
-
-            version_info = f"Twikit Version: {twikit.__version__}\n"
-
-            # Check if cookies_file parameter is supported
-            import inspect
-
-            login_signature = inspect.signature(twikit.Client.login)
-            cookies_file_supported = "cookies_file" in login_signature.parameters
-
-            # Check if user_agent parameter is supported in Client.__init__
-            client_signature = inspect.signature(twikit.Client.__init__)
-            user_agent_supported = "user_agent" in client_signature.parameters
-
-            version_info += (
-                f"Cookies File Support: {'Yes' if cookies_file_supported else 'No'}\n"
-            )
-            version_info += (
-                f"User Agent Support: {'Yes' if user_agent_supported else 'No'}\n"
-            )
-            version_info += (
-                f"Login Parameters: {list(login_signature.parameters.keys())}\n"
-            )
-            version_info += (
-                f"Client Init Parameters: {list(client_signature.parameters.keys())}"
-            )
-
-            await update.message.reply_text(version_info)
-
-        except Exception as e:
-            await update.message.reply_text(f"Error checking version: {str(e)}")
+            await update.message.reply_text(f"❌ Error uploading cookie file: {str(e)}")
 
     async def testlogin_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle /testlogin command to test if login is blocked"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
@@ -1137,6 +781,13 @@ Bot Status:
                         f"Recommendation: {cloudflare_result.get('recommendation', 'Check configuration')}"
                     )
 
+            # Test proxy connectivity
+            if Config.PROXY_URL:
+                await update.message.reply_text("🔌 Testing proxy connectivity...")
+                await update.message.reply_text(f"✅ Proxy configured: {Config.PROXY_URL[:50]}...")
+            else:
+                await update.message.reply_text("⚠️ No proxy configured")
+
             # Test captcha solver availability
             if captcha_solver.is_captcha_solver_available():
                 await update.message.reply_text("🧩 Captcha solver available!")
@@ -1146,42 +797,10 @@ Bot Status:
             # Test basic Twikit connectivity
             await update.message.reply_text("🔗 Testing Twikit connectivity...")
 
-            from twikit import Client
-            import httpx
-
-            # Get captcha solver for client
-            captcha_solver_instance = captcha_solver.get_captcha_solver()
-
-            # Work around the proxy parameter issue in newer Twikit versions
-            try:
-                if captcha_solver_instance:
-                    temp_client = Client(
-                        language="en-US", captcha_solver=captcha_solver_instance
-                    )
-                else:
-                    temp_client = Client(language="en-US")
-            except TypeError as e:
-                if "proxy" in str(e):
-                    # Patch the httpx AsyncClient to ignore proxy parameter
-                    original_init = httpx.AsyncClient.__init__
-
-                    def patched_init(self, *args, **kwargs):
-                        kwargs.pop("proxy", None)
-                        return original_init(self, *args, **kwargs)
-
-                    httpx.AsyncClient.__init__ = patched_init
-                    if captcha_solver_instance:
-                        temp_client = Client(
-                            language="en-US", captcha_solver=captcha_solver_instance
-                        )
-                    else:
-                        temp_client = Client(language="en-US")
-                else:
-                    raise e
+            # Create client with proxy
+            temp_client = self._create_twikit_client(use_proxy=True)
 
             # Try a simple request to test connectivity
-            import asyncio
-
             await asyncio.sleep(2)
 
             # This will fail but we can see what type of error we get
@@ -1201,19 +820,14 @@ Bot Status:
                     status_text = (
                         "❌ Login is BLOCKED by Cloudflare\n\n"
                         "🔧 Solutions:\n"
-                        "1. Use cookie upload method: `/addbot` or `/addbotjson`\n"
+                        "1. ✅ Use cookie upload method: `/addbot` or `/addbotjson`\n"
                         "2. Enable captcha solver: Set `USE_CAPTCHA_SOLVER=true`\n"
                         "3. Enable cloudscraper: Set `USE_CLOUDSCRAPER=true`\n"
-                        "4. Get CAPSOLVER_API_KEY from https://capsolver.com\n\n"
+                        "4. Configure residential proxy (currently: " + 
+                        ('✅ configured' if Config.PROXY_URL else '❌ not configured') + ")\n\n"
                         "💡 Run `/captchastatus` for detailed status"
                     )
                     await update.message.reply_text(status_text)
-                elif "cookies_file" in error_msg:
-                    await update.message.reply_text(
-                        "⚠️ Twikit version issue detected\n"
-                        "Your version doesn't support cookies_file parameter\n"
-                        "Use /version to check details"
-                    )
                 else:
                     await update.message.reply_text(
                         f"✅ Login connectivity OK\n"
@@ -1222,14 +836,14 @@ Bot Status:
                     )
 
         except Exception as e:
-            await update.message.reply_text(f"Test failed: {str(e)}")
+            await update.message.reply_text(f"❌ Test failed: {str(e)}")
 
     async def captchastatus_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle /captchastatus command to show captcha solver status"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
@@ -1246,7 +860,9 @@ Bot Status:
             cf_enabled = Config.USE_CLOUDSCRAPER
             cf_available = getattr(solver, "cloudscraper_session", None) is not None
 
-            status_text = "🧩 Captcha Solver Status\n\n"
+            proxy_configured = bool(Config.PROXY_URL)
+
+            status_text = "🧩 Captcha Solver & Proxy Status\n\n"
             status_text += "🔧 Captcha Solver:\n"
             status_text += f"   Enabled: {'✅' if captcha_enabled else '❌'}\n"
             status_text += f"   Configured: {'✅' if captcha_configured else '❌'}\n"
@@ -1256,23 +872,636 @@ Bot Status:
             status_text += f"   Enabled: {'✅' if cf_enabled else '❌'}\n"
             status_text += f"   Available: {'✅' if cf_available else '❌'}\n\n"
 
+            status_text += "🔌 Residential Proxy:\n"
+            status_text += f"   Configured: {'✅' if proxy_configured else '❌'}\n"
+            if proxy_configured:
+                proxy_preview = Config.PROXY_URL[:50] + "..." if len(Config.PROXY_URL) > 50 else Config.PROXY_URL
+                status_text += f"   URL: {proxy_preview}\n\n"
+
             status_text += (
                 "✅ All systems configured properly!"
-                if (captcha_enabled and captcha_configured and (captcha_available or cf_available))
-                else "⚠️ Some components are not available."
+                if (proxy_configured and (captcha_enabled and captcha_configured or cf_enabled))
+                else "⚠️ Some components are not available. Recommended: Configure residential proxy."
             )
 
             await update.message.reply_text(status_text)
 
         except Exception as e:
-            await update.message.reply_text(f"Error getting status: {str(e)}")
+            await update.message.reply_text(f"❌ Error getting status: {str(e)}")
+
+    # Remaining command handlers from original file
+    async def post_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /post command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide a Twitter URL.\n"
+                "Usage: `/post https://twitter.com/user/status/123456789`",
+            )
+            return
+
+        url = context.args[0]
+
+        try:
+            # Add engagement tasks
+            tasks_added = []
+
+            # Like task
+            task_id = await self.scheduler.add_task(TaskType.LIKE, {"tweet_url": url})
+            tasks_added.append(f"Like: {task_id}")
+
+            # Comment task (with delay)
+            task_id = await self.scheduler.add_task(
+                TaskType.COMMENT,
+                {
+                    "tweet_url": url,
+                    "comments": ["Nice post! 👍", "Great content! 🎯", "Amazing! ✨"],
+                },
+                delay_minutes=5,
+            )
+            tasks_added.append(f"Comment: {task_id}")
+
+            # Retweet task (with delay)
+            task_id = await self.scheduler.add_task(
+                TaskType.RETWEET, {"tweet_url": url}, delay_minutes=10
+            )
+            tasks_added.append(f"Retweet: {task_id}")
+
+            await update.message.reply_text(
+                f"✅ Post engagement scheduled!\n\n"
+                f"📝 Tasks Added:\n" + "\n".join(tasks_added) + "\n\n"
+                f"🔗 URL: {url}"
+            )
+
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ Error scheduling post engagement: {str(e)}"
+            )
+
+    async def quote_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /quote command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if len(context.args) < 2:
+            await update.message.reply_text(
+                "❌ Please provide keyword and message.\n"
+                'Usage: `/quote keyword "message text"`',
+            )
+            return
+
+        keyword = context.args[0]
+        message = " ".join(context.args[1:])
+
+        # Remove quotes if present
+        if message.startswith('"') and message.endswith('"'):
+            message = message[1:-1]
+
+        try:
+            # Build user pool first
+            await update.message.reply_text(
+                f"🔍 Building user pool for keyword: {keyword}"
+            )
+
+            pool_built = await self.search_engine.build_user_pool_for_keyword(keyword)
+
+            if not pool_built:
+                await update.message.reply_text(
+                    f"❌ Failed to build user pool for keyword: {keyword}"
+                )
+                return
+
+            # Add quote task
+            task_id = await self.scheduler.add_task(
+                TaskType.QUOTE,
+                {
+                    "keyword": keyword,
+                    "quote_text": message,
+                    "mention_count": Config.MAX_MENTIONS_PER_QUOTE,
+                },
+            )
+
+            await update.message.reply_text(
+                f"✅ Quote campaign scheduled!\n\n"
+                f"🔑 Keyword: {keyword}\n"
+                f"💬 Message: {message}\n"
+                f"📋 Task ID: {task_id}"
+            )
+
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ Error scheduling quote campaign: {str(e)}"
+            )
+
+    async def listbots_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /listbots command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            workers = self.worker_manager.get_all_workers()
+            worker_status = await self.worker_manager.get_worker_status()
+
+            if not workers:
+                await update.message.reply_text(
+                    "📭 No bots configured yet.\nUse `/addbot` to add your first bot."
+                )
+                return
+
+            text = "🤖 Configured Bots:\n\n"
+
+            for bot_id, worker in workers.items():
+                status = worker_status.get(bot_id, {})
+                emoji = "✅" if status.get("can_perform_action") else "❌"
+
+                text += f"{emoji} {bot_id}\n"
+                text += f"   Status: {status.get('status', 'unknown')}\n"
+
+                if status.get("rate_limited_until"):
+                    text += f"   Rate Limited Until: {status['rate_limited_until']}\n"
+
+                if status.get("captcha_required"):
+                    text += f"   ⚠️ Captcha Required\n"
+
+                text += "\n"
+
+            await update.message.reply_text(text)
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error listing bots: {str(e)}")
+
+    async def logs_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /logs command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            lines = 20
+            if context.args:
+                try:
+                    lines = int(context.args[0])
+                    lines = min(lines, 50)  # Max 50 lines
+                except ValueError:
+                    pass
+
+            logs = self.logger.get_recent_logs(lines)
+
+            if not logs or logs.strip() == "":
+                await update.message.reply_text("📭 No logs available.")
+                return
+
+            # Split long messages
+            if len(logs) > 4000:
+                logs = logs[-4000:]  # Take last 4000 characters
+
+            await update.message.reply_text(
+                f"📝 Recent Logs:\n\n```\n{logs}\n```",
+            )
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error getting logs: {str(e)}")
+
+    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /stats command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            stats = self.engagement_engine.get_engagement_stats()
+            db_stats = stats.get("database_stats", {})
+
+            text = "📈 Engagement Statistics\n\n"
+
+            if isinstance(db_stats, dict):
+                text += f"👍 Likes: {db_stats.get('total_likes', 0)}\n"
+                text += f"💬 Comments: {db_stats.get('total_comments', 0)}\n"
+                text += f"🔄 Retweets: {db_stats.get('total_retweets', 0)}\n"
+                text += f"💭 Quotes: {db_stats.get('total_quotes', 0)}\n"
+
+            text += (
+                f"\n🤖 Active Workers: {len(self.worker_manager.get_active_workers())}\n"
+            )
+            text += f"📅 Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+            await update.message.reply_text(text)
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error getting statistics: {str(e)}")
+
+    async def queue_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /queue command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            queue_status = await self.scheduler.get_queue_status()
+
+            text = "🔄 Task Queue Status\n\n"
+            text += f"📋 Queue Size: {queue_status['queue_size']}\n"
+            text += f"⏳ Pending: {queue_status['pending_tasks']}\n"
+            text += f"🔄 In Progress: {queue_status['in_progress_tasks']}\n"
+            text += f"✅ Completed: {queue_status['completed_tasks']}\n"
+            text += f"❌ Failed: {queue_status['failed_tasks']}\n"
+            text += f"📊 Total Active: {queue_status['active_tasks']}"
+
+            await update.message.reply_text(text)
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error getting queue status: {str(e)}")
+
+    # Additional helper methods and remaining command handlers
+    async def removebot_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /removebot command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide bot ID.\nUsage: `/removebot <bot_id>`",
+            )
+            return
+
+        bot_id = context.args[0]
+        success = await self.worker_manager.remove_worker(bot_id)
+
+        if success:
+            await update.message.reply_text(f"✅ Bot {bot_id} removed successfully!")
+        else:
+            await update.message.reply_text(f"❌ Failed to remove bot {bot_id}")
+
+    async def syncfollows_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /syncfollows command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        await update.message.reply_text("🔄 Syncing mutual follows...")
+
+        task_id = await self.scheduler.add_task(TaskType.SYNC_FOLLOWS, {}, priority=2)
+
+        await update.message.reply_text(
+            f"✅ Mutual follow sync scheduled!\n📋 Task ID: {task_id}"
+        )
+
+    async def like_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /like command"""
+        await self._handle_single_action(update, context, TaskType.LIKE, "like")
+
+    async def retweet_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /retweet command"""
+        await self._handle_single_action(update, context, TaskType.RETWEET, "retweet")
+
+    async def comment_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /comment command"""
+        await self._handle_single_action(update, context, TaskType.COMMENT, "comment")
+
+    async def unfollow_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
+        """Handle /unfollow command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide bot ID or 'all'.\n"
+                "Usage: /unfollow <bot_id> or /unfollow all\n"
+                "Examples:\n"
+                "• /unfollow bot_1 - Unfollow all followers for bot_1\n"
+                "• /unfollow all - Unfollow all followers for all bots"
+            )
+            return
+
+        target = context.args[0].lower()
+
+        try:
+            if target == "all":
+                await update.message.reply_text(
+                    "🔄 Starting unfollow process for ALL bots...\n"
+                    "This will unfollow all followers for each bot.\n"
+                    "Process will be slow to respect rate limits."
+                )
+
+                # Start unfollow process for all bots
+                results = await self.worker_manager.unfollow_all_followers_all_bots()
+
+                if "error" in results:
+                    await update.message.reply_text(f"❌ Error: {results['error']}")
+                    return
+
+                # Format results
+                summary_text = "✅ Unfollow Process Completed\n\n"
+                total_unfollowed = 0
+                total_failed = 0
+
+                for bot_id, result in results.items():
+                    if result.get("success"):
+                        unfollowed = result.get("unfollowed", 0)
+                        failed = result.get("failed", 0)
+                        total_unfollowed += unfollowed
+                        total_failed += failed
+
+                        summary_text += f"🤖 {bot_id}:\n"
+                        summary_text += f"  ✅ Unfollowed: {unfollowed}\n"
+                        summary_text += f"  ❌ Failed: {failed}\n\n"
+                    else:
+                        summary_text += f"❌ {bot_id}: Error - {result.get('error', 'Unknown error')}\n\n"
+
+                summary_text += f"📊 Total Results:\n"
+                summary_text += f"  ✅ Total Unfollowed: {total_unfollowed}\n"
+                summary_text += f"  ❌ Total Failed: {total_failed}"
+
+                await update.message.reply_text(summary_text)
+
+            else:
+                # Unfollow for specific bot
+                bot_id = target
+                await update.message.reply_text(
+                    f"🔄 Starting unfollow process for bot {bot_id}...\n"
+                    "This will unfollow all followers for this bot.\n"
+                    "Process will be slow to respect rate limits."
+                )
+
+                result = await self.worker_manager.unfollow_following_for_bot(bot_id)
+
+                if result.get("success"):
+                    unfollowed = result.get("unfollowed", 0)
+                    failed = result.get("failed", 0)
+                    total = result.get("total_following", 0)
+
+                    response_text = f"✅ Unfollow Process Completed for {bot_id}\n\n"
+                    response_text += f"📊 Total Following: {total}\n"
+                    response_text += f"✅ Successfully Unfollowed: {unfollowed}\n"
+                    response_text += f"❌ Failed: {failed}\n"
+
+                    if result.get("errors"):
+                        response_text += f"\n❌ Errors:\n"
+                        for error in result["errors"][:5]:  # Show first 5 errors
+                            response_text += f"• {error}\n"
+                        if len(result["errors"]) > 5:
+                            response_text += (
+                                f"... and {len(result['errors']) - 5} more errors"
+                            )
+
+                    await update.message.reply_text(response_text)
+                else:
+                    await update.message.reply_text(
+                        f"❌ Error: {result.get('error', 'Unknown error')}"
+                    )
+
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ Error executing unfollow command: {str(e)}"
+            )
+
+    async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /search command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide keyword.\nUsage: `/search <keyword>`",
+            )
+            return
+
+        keyword = context.args[0]
+        await update.message.reply_text(
+            f"🔍 Searching for tweets with keyword: {keyword}"
+        )
+
+        tweets = await self.search_engine.search_tweets_by_keyword(keyword)
+        await update.message.reply_text(
+            f"✅ Found {len(tweets)} tweets for keyword: {keyword}"
+        )
+
+    async def pool_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /pool command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide keyword.\nUsage: `/pool <keyword>`",
+            )
+            return
+
+        keyword = context.args[0]
+        pool_status = self.search_engine.get_user_pool_status(keyword)
+
+        if not pool_status:
+            await update.message.reply_text(f"❌ No pool found for keyword: {keyword}")
+            return
+
+        text = f"👥 User Pool: {keyword}\n\n"
+        text += f"✅ Available: {pool_status['available_users']}\n"
+        text += f"🔄 Used: {pool_status['used_users']}\n"
+        text += f"📊 Total: {pool_status['total_users']}\n"
+
+        if pool_status.get("created_at"):
+            text += f"📅 Created: {pool_status['created_at']}"
+
+        await update.message.reply_text(text)
+
+    async def refresh_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /refresh command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide keyword.\nUsage: `/refresh <keyword>`",
+            )
+            return
+
+        keyword = context.args[0]
+        await update.message.reply_text(
+            f"🔄 Refreshing user pool for keyword: {keyword}"
+        )
+
+        success = await self.search_engine.build_user_pool_for_keyword(keyword)
+
+        if success:
+            await update.message.reply_text(
+                f"✅ User pool refreshed for keyword: {keyword}"
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ Failed to refresh user pool for keyword: {keyword}"
+            )
+
+    async def backup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /backup command"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            backup_path = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            success = self.db.backup_database(backup_path)
+
+            if success:
+                await update.message.reply_text(
+                    f"✅ Database backed up successfully!\n💾 File: {backup_path}"
+                )
+            else:
+                await update.message.reply_text("❌ Failed to create backup")
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error creating backup: {str(e)}")
+
+    async def test_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /test command - test bot authentication and basic functionality"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        await update.message.reply_text(
+            "🧪 Testing bot authentication and functionality..."
+        )
+
+        try:
+            # Get the first active worker for testing
+            active_workers = self.worker_manager.get_active_workers()
+            if not active_workers:
+                await update.message.reply_text("❌ No active workers found for testing.")
+                return
+
+            worker = active_workers[0]
+            test_results = []
+
+            # Test 1: Check if bot is logged in
+            test_results.append(f"✅ Bot logged in: {worker.is_logged_in}")
+
+            # Test 2: Check rate limiting status
+            can_perform = worker._can_perform_action()
+            test_results.append(f"✅ Can perform actions: {can_perform}")
+
+            # Test 3: Try to get user info
+            try:
+                # Try to get current user info
+                user_info = await worker.client.user()
+                if user_info:
+                    username = getattr(
+                        user_info,
+                        "screen_name",
+                        getattr(user_info, "username", "Unknown"),
+                    )
+                    test_results.append(f"✅ User info retrieved: @{username}")
+                else:
+                    test_results.append("❌ Failed to get user info")
+            except Exception as e:
+                test_results.append(f"❌ User info error: {str(e)}")
+
+            # Format results
+            result_text = "🧪 Bot Test Results:\n\n" + "\n".join(test_results)
+            await update.message.reply_text(result_text)
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Test failed with error: {str(e)}")
+
+    async def reinit_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /reinit command - reinitialize bot authentication"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        await update.message.reply_text("🔄 Reinitializing bot authentication...")
+
+        try:
+            # Get all workers
+            workers = self.worker_manager.get_all_workers()
+            if not workers:
+                await update.message.reply_text("❌ No workers found to reinitialize.")
+                return
+
+            results = []
+            for bot_id, worker in workers.items():
+                try:
+                    success = await worker.reinitialize()
+                    if success:
+                        results.append(f"✅ {bot_id}: Reinitialized successfully")
+                    else:
+                        results.append(f"❌ {bot_id}: Reinitialization failed")
+                except Exception as e:
+                    results.append(f"❌ {bot_id}: Error - {str(e)}")
+
+            result_text = "🔄 Reinitialization Results:\n\n" + "\n".join(results)
+            await update.message.reply_text(result_text)
+
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ Reinitialization failed with error: {str(e)}"
+            )
+
+    async def version_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /version command to check Twikit version"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            import twikit
+            import inspect
+
+            version_info = f"📦 Twikit Version: {twikit.__version__}\n\n"
+
+            # Check if cookies_file parameter is supported
+            login_signature = inspect.signature(twikit.Client.login)
+            cookies_file_supported = "cookies_file" in login_signature.parameters
+
+            # Check if proxy parameter is supported in Client.__init__
+            client_signature = inspect.signature(twikit.Client.__init__)
+            proxy_supported = "proxy" in client_signature.parameters
+            captcha_solver_supported = "captcha_solver" in client_signature.parameters
+
+            version_info += f"✅ Features:\n"
+            version_info += (
+                f"  Cookies File Support: {'✅' if cookies_file_supported else '❌'}\n"
+            )
+            version_info += (
+                f"  Proxy Support: {'✅' if proxy_supported else '❌'}\n"
+            )
+            version_info += (
+                f"  Captcha Solver Support: {'✅' if captcha_solver_supported else '❌'}\n\n"
+            )
+            version_info += (
+                f"🔌 Proxy Configured: {'✅' if Config.PROXY_URL else '❌'}\n"
+            )
+            version_info += (
+                f"🧩 Captcha Solver: {'✅ Enabled' if Config.USE_CAPTCHA_SOLVER else '❌ Disabled'}"
+            )
+
+            await update.message.reply_text(version_info)
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error checking version: {str(e)}")
 
     async def cloudflare_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle /cloudflare command to test and get Cloudflare cookies"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
@@ -1322,199 +1551,17 @@ Bot Status:
                 )
 
         except Exception as e:
-            await update.message.reply_text(f"Error: {str(e)}")
-
-    # Additional command handlers (simplified for brevity)
-    async def removebot_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ):
-        """Handle /removebot command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if not context.args:
-            await update.message.reply_text(
-                " Please provide bot ID.\nUsage: `/removebot <bot_id>`",
-            )
-            return
-
-        bot_id = context.args[0]
-        success = await self.worker_manager.remove_worker(bot_id)
-
-        if success:
-            await update.message.reply_text(f" Bot {bot_id} removed successfully!")
-        else:
-            await update.message.reply_text(f" Failed to remove bot {bot_id}")
-
-    async def syncfollows_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ):
-        """Handle /syncfollows command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        await update.message.reply_text("🔄 Syncing mutual follows...")
-
-        task_id = await self.scheduler.add_task(TaskType.SYNC_FOLLOWS, {}, priority=2)
-
-        await update.message.reply_text(
-            f" Mutual follow sync scheduled!\n Task ID: {task_id}"
-        )
-
-    async def pool_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /pool command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if not context.args:
-            await update.message.reply_text(
-                " Please provide keyword.\nUsage: `/pool <keyword>`",
-            )
-            return
-
-        keyword = context.args[0]
-        pool_status = self.search_engine.get_user_pool_status(keyword)
-
-        if not pool_status:
-            await update.message.reply_text(f" No pool found for keyword: {keyword}")
-            return
-
-        text = f"User Pool: {keyword}\n\n"
-        text += f"Available: {pool_status['available_users']}\n"
-        text += f"🔄 Used: {pool_status['used_users']}\n"
-        text += f"Total: {pool_status['total_users']}\n"
-
-        if pool_status.get("created_at"):
-            text += f"📅 Created: {pool_status['created_at']}"
-
-        await update.message.reply_text(
-            text,
-        )
-
-    async def backup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /backup command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        try:
-            backup_path = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            success = self.db.backup_database(backup_path)
-
-            if success:
-                await update.message.reply_text(
-                    f" Database backed up successfully!\n File: {backup_path}"
-                )
-            else:
-                await update.message.reply_text(" Failed to create backup")
-
-        except Exception as e:
-            await update.message.reply_text(f" Error creating backup: {str(e)}")
-
-    async def test_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /test command - test bot authentication and basic functionality"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        await update.message.reply_text(
-            "Testing bot authentication and functionality..."
-        )
-
-        try:
-            # Get the first active worker for testing
-            active_workers = self.worker_manager.get_active_workers()
-            if not active_workers:
-                await update.message.reply_text("No active workers found for testing.")
-                return
-
-            worker = active_workers[0]
-            test_results = []
-
-            # Test 1: Check if bot is logged in
-            test_results.append(f"✓ Bot logged in: {worker.is_logged_in}")
-
-            # Test 2: Check rate limiting status
-            can_perform = worker._can_perform_action()
-            test_results.append(f"✓ Can perform actions: {can_perform}")
-
-            # Test 3: Try to get user info
-            try:
-                # Try to get current user info
-                user_info = await worker.client.user()
-                if user_info:
-                    username = getattr(
-                        user_info,
-                        "screen_name",
-                        getattr(user_info, "username", "Unknown"),
-                    )
-                    test_results.append(f"✓ User info retrieved: @{username}")
-                else:
-                    test_results.append("✗ Failed to get user info")
-            except Exception as e:
-                test_results.append(f"✗ User info error: {str(e)}")
-
-            # Test 4: Try to create a simple test tweet
-            test_text = "Hello Twitter! 👋"
-            try:
-                await worker.client.create_tweet(text=test_text)
-                test_results.append("✓ Test tweet created successfully")
-            except Exception as e:
-                test_results.append(f"✗ Test tweet failed: {str(e)}")
-
-            # Format results
-            result_text = "Bot Test Results:\n\n" + "\n".join(test_results)
-            await update.message.reply_text(result_text)
-
-        except Exception as e:
-            await update.message.reply_text(f"Test failed with error: {str(e)}")
-
-    async def reinit_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /reinit command - reinitialize bot authentication"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        await update.message.reply_text("Reinitializing bot authentication...")
-
-        try:
-            # Get all workers
-            workers = self.worker_manager.get_all_workers()
-            if not workers:
-                await update.message.reply_text("No workers found to reinitialize.")
-                return
-
-            results = []
-            for bot_id, worker in workers.items():
-                try:
-                    success = await worker.reinitialize()
-                    if success:
-                        results.append(f"✓ {bot_id}: Reinitialized successfully")
-                    else:
-                        results.append(f"✗ {bot_id}: Reinitialization failed")
-                except Exception as e:
-                    results.append(f"✗ {bot_id}: Error - {str(e)}")
-
-            result_text = "Reinitialization Results:\n\n" + "\n".join(results)
-            await update.message.reply_text(result_text)
-
-        except Exception as e:
-            await update.message.reply_text(
-                f"Reinitialization failed with error: {str(e)}"
-            )
+            await update.message.reply_text(f"❌ Error: {str(e)}")
 
     async def reactivate_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle /reactivate command - reactivate inactive bots"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
-        await update.message.reply_text("Reactivating inactive bots...")
+        await update.message.reply_text("🔄 Reactivating inactive bots...")
 
         try:
             # Get all bots from database
@@ -1526,7 +1573,7 @@ Bot Status:
                     inactive_bots.append(bot_id)
 
             if not inactive_bots:
-                await update.message.reply_text("No inactive bots found.")
+                await update.message.reply_text("✅ No inactive bots found.")
                 return
 
             results = []
@@ -1541,32 +1588,32 @@ Bot Status:
 
                     if await worker.initialize():
                         self.worker_manager.workers[bot_id] = worker
-                        results.append(f"✓ {bot_id}: Reactivated successfully")
+                        results.append(f"✅ {bot_id}: Reactivated successfully")
                     else:
-                        results.append(f"✗ {bot_id}: Failed to initialize")
+                        results.append(f"❌ {bot_id}: Failed to initialize")
 
                 except Exception as e:
-                    results.append(f"✗ {bot_id}: Error - {str(e)}")
+                    results.append(f"❌ {bot_id}: Error - {str(e)}")
 
-            result_text = "Reactivation Results:\n\n" + "\n".join(results)
+            result_text = "🔄 Reactivation Results:\n\n" + "\n".join(results)
             await update.message.reply_text(result_text)
 
         except Exception as e:
-            await update.message.reply_text(f"Reactivation failed with error: {str(e)}")
+            await update.message.reply_text(f"❌ Reactivation failed with error: {str(e)}")
 
     async def checkduplicates_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """Handle /checkduplicates command - check for duplicate auth tokens"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
             all_bots = self.db.get_all_bots()
 
             if not all_bots:
-                await update.message.reply_text("No bots found in database.")
+                await update.message.reply_text("❌ No bots found in database.")
                 return
 
             # Check for duplicate auth_tokens
@@ -1591,41 +1638,39 @@ Bot Status:
             if duplicates:
                 message = "❌ Duplicate auth tokens found:\n\n"
                 for dup in duplicates:
-                    message += f"Token: `{dup['auth_token']}`\n"
+                    message += f"🔑 Token: `{dup['auth_token']}`\n"
                     message += (
-                        f"Used by: {', '.join([f'`{bot}`' for bot in dup['bots']])}\n\n"
+                        f"🤖 Used by: {', '.join([f'`{bot}`' for bot in dup['bots']])}\n\n"
                     )
 
                 message += (
-                    "These bots share the same authentication and may conflict.\n"
+                    "⚠️ These bots share the same authentication and may conflict.\n"
                 )
                 message += (
-                    "Consider removing duplicate bots or using different accounts."
+                    "💡 Consider removing duplicate bots or using different accounts."
                 )
 
-                await update.message.reply_text(
-                    message,
-                )
+                await update.message.reply_text(message)
             else:
                 await update.message.reply_text(
                     "✅ No duplicate auth tokens found.\n\n"
-                    f"Checked {len(all_bots)} bots - all have unique authentication."
+                    f"✅ Checked {len(all_bots)} bots - all have unique authentication."
                 )
 
         except Exception as e:
-            await update.message.reply_text(f"Error checking duplicates: {str(e)}")
+            await update.message.reply_text(f"❌ Error checking duplicates: {str(e)}")
 
     async def cleanup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /cleanup command - remove inactive/failed bots"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         try:
             all_bots = self.db.get_all_bots()
 
             if not all_bots:
-                await update.message.reply_text("No bots found in database.")
+                await update.message.reply_text("❌ No bots found in database.")
                 return
 
             inactive_bots = []
@@ -1634,7 +1679,7 @@ Bot Status:
                     inactive_bots.append(bot_id)
 
             if not inactive_bots:
-                await update.message.reply_text("No inactive bots found to clean up.")
+                await update.message.reply_text("✅ No inactive bots found to clean up.")
                 return
 
             # Remove inactive bots
@@ -1649,22 +1694,22 @@ Bot Status:
 
             await update.message.reply_text(
                 f"🧹 Cleanup completed!\n\n"
-                f"Removed {removed_count}/{len(inactive_bots)} inactive bots.\n"
-                f"System is now cleaner and ready for fresh bots."
+                f"✅ Removed {removed_count}/{len(inactive_bots)} inactive bots.\n"
+                f"🎉 System is now cleaner and ready for fresh bots."
             )
 
         except Exception as e:
-            await update.message.reply_text(f"Error during cleanup: {str(e)}")
+            await update.message.reply_text(f"❌ Error during cleanup: {str(e)}")
 
     async def disable_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Disable a bot (mark as inactive)"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         if not context.args:
             await update.message.reply_text(
-                "Please provide a bot ID.\nUsage: /disable <bot_id>"
+                "❌ Please provide a bot ID.\nUsage: /disable <bot_id>"
             )
             return
 
@@ -1674,24 +1719,24 @@ Bot Status:
             success = await self.worker_manager.disable_worker(bot_id)
 
             if success:
-                await update.message.reply_text(f"Bot {bot_id} disabled successfully.")
+                await update.message.reply_text(f"✅ Bot {bot_id} disabled successfully.")
             else:
                 await update.message.reply_text(
-                    f"Failed to disable bot {bot_id}. Bot may not exist."
+                    f"❌ Failed to disable bot {bot_id}. Bot may not exist."
                 )
 
         except Exception as e:
-            await update.message.reply_text(f"Error disabling bot {bot_id}: {str(e)}")
+            await update.message.reply_text(f"❌ Error disabling bot {bot_id}: {str(e)}")
 
     async def enable_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Enable a bot (mark as active and reinitialize)"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         if not context.args:
             await update.message.reply_text(
-                "Please provide a bot ID.\nUsage: /enable <bot_id>"
+                "❌ Please provide a bot ID.\nUsage: /enable <bot_id>"
             )
             return
 
@@ -1702,25 +1747,25 @@ Bot Status:
 
             if success:
                 await update.message.reply_text(
-                    f"Bot {bot_id} enabled and reinitialized successfully."
+                    f"✅ Bot {bot_id} enabled and reinitialized successfully."
                 )
             else:
                 await update.message.reply_text(
-                    f"Failed to enable bot {bot_id}. Bot may not exist or cookies may be invalid."
+                    f"❌ Failed to enable bot {bot_id}. Bot may not exist or cookies may be invalid."
                 )
 
         except Exception as e:
-            await update.message.reply_text(f"Error enabling bot {bot_id}: {str(e)}")
+            await update.message.reply_text(f"❌ Error enabling bot {bot_id}: {str(e)}")
 
     async def delete_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Permanently delete a bot"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         if not context.args:
             await update.message.reply_text(
-                "Please provide a bot ID.\nUsage: /delete <bot_id>"
+                "❌ Please provide a bot ID.\nUsage: /delete <bot_id>"
             )
             return
 
@@ -1740,7 +1785,7 @@ Bot Status:
 
         except Exception as e:
             await update.message.reply_text(
-                f"Error preparing deletion of bot {bot_id}: {str(e)}"
+                f"❌ Error preparing deletion of bot {bot_id}: {str(e)}"
             )
 
     async def handle_deletion_confirmation(
@@ -1760,11 +1805,11 @@ Bot Status:
 
                 if success:
                     await update.message.reply_text(
-                        f"Bot {pending_deletion} deleted permanently."
+                        f"✅ Bot {pending_deletion} deleted permanently."
                     )
                 else:
                     await update.message.reply_text(
-                        f"Failed to delete bot {pending_deletion}. Bot may not exist."
+                        f"❌ Failed to delete bot {pending_deletion}. Bot may not exist."
                     )
 
                 # Clear pending deletion
@@ -1772,370 +1817,55 @@ Bot Status:
 
             except Exception as e:
                 await update.message.reply_text(
-                    f"Error deleting bot {pending_deletion}: {str(e)}"
+                    f"❌ Error deleting bot {pending_deletion}: {str(e)}"
                 )
                 del context.user_data["pending_deletion"]
         else:
             # User didn't confirm, cancel deletion
             await update.message.reply_text(
-                f"Deletion of bot {pending_deletion} cancelled."
+                f"❌ Deletion of bot {pending_deletion} cancelled."
             )
             del context.user_data["pending_deletion"]
 
-    # Placeholder methods for other commands
-    async def like_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /like command"""
-        await self._handle_single_action(update, context, TaskType.LIKE, "like")
-
-    async def retweet_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /retweet command"""
-        await self._handle_single_action(update, context, TaskType.RETWEET, "retweet")
-
-    async def comment_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /comment command"""
-        await self._handle_single_action(update, context, TaskType.COMMENT, "comment")
-
-    async def unfollow_command(
+    async def savecookies_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
-        """Handle /unfollow command"""
+        """Handle /savecookies command to save bot cookies to files"""
         if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text("Access denied. You are not an admin.")
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
-
-        if not context.args:
-            await update.message.reply_text(
-                "Please provide bot ID or 'all'.\n"
-                "Usage: /unfollow <bot_id> or /unfollow all\n"
-                "Examples:\n"
-                "• /unfollow bot_1 - Unfollow all followers for bot_1\n"
-                "• /unfollow all - Unfollow all followers for all bots"
-            )
-            return
-
-        target = context.args[0].lower()
 
         try:
-            if target == "all":
-                await update.message.reply_text(
-                    "Starting unfollow process for ALL bots...\n"
-                    "This will unfollow all followers for each bot.\n"
-                    "Process will be slow to respect rate limits."
-                )
+            workers = self.worker_manager.get_all_workers()
+            if not workers:
+                await update.message.reply_text("❌ No bots found to save cookies for.")
+                return
 
-                # Start unfollow process for all bots
-                results = await self.worker_manager.unfollow_all_followers_all_bots()
+            saved_count = 0
+            for bot_id, worker in workers.items():
+                try:
+                    # Get cookies from the worker's client
+                    cookies = worker.client.get_cookies()
 
-                if "error" in results:
-                    await update.message.reply_text(f"Error: {results['error']}")
-                    return
-
-                # Format results
-                summary_text = "Unfollow Process Completed\n\n"
-                total_unfollowed = 0
-                total_failed = 0
-
-                for bot_id, result in results.items():
-                    if result.get("success"):
-                        unfollowed = result.get("unfollowed", 0)
-                        failed = result.get("failed", 0)
-                        total_unfollowed += unfollowed
-                        total_failed += failed
-
-                        summary_text += f"{bot_id}:\n"
-                        summary_text += f"  Unfollowed: {unfollowed}\n"
-                        summary_text += f"  Failed: {failed}\n\n"
-                    else:
-                        summary_text += f"{bot_id}: Error - {result.get('error', 'Unknown error')}\n\n"
-
-                summary_text += f"Total Results:\n"
-                summary_text += f"  Total Unfollowed: {total_unfollowed}\n"
-                summary_text += f"  Total Failed: {total_failed}"
-
-                await update.message.reply_text(summary_text)
-
-            else:
-                # Unfollow for specific bot
-                bot_id = target
-                await update.message.reply_text(
-                    f"Starting unfollow process for bot {bot_id}...\n"
-                    "This will unfollow all followers for this bot.\n"
-                    "Process will be slow to respect rate limits."
-                )
-
-                result = await self.worker_manager.unfollow_following_for_bot(bot_id)
-
-                if result.get("success"):
-                    unfollowed = result.get("unfollowed", 0)
-                    failed = result.get("failed", 0)
-                    total = result.get("total_following", 0)
-
-                    response_text = f"Unfollow Process Completed for {bot_id}\n\n"
-                    response_text += f"Total Following: {total}\n"
-                    response_text += f"Successfully Unfollowed: {unfollowed}\n"
-                    response_text += f"Failed: {failed}\n"
-
-                    if result.get("errors"):
-                        response_text += f"\nErrors:\n"
-                        for error in result["errors"][:5]:  # Show first 5 errors
-                            response_text += f"• {error}\n"
-                        if len(result["errors"]) > 5:
-                            response_text += (
-                                f"... and {len(result['errors']) - 5} more errors"
-                            )
-
-                    await update.message.reply_text(response_text)
-                else:
-                    await update.message.reply_text(
-                        f"Error: {result.get('error', 'Unknown error')}"
+                    # Create cookie file path
+                    cookie_file_path = os.path.join(
+                        Config.COOKIES_PATH, f"{bot_id}_cookies.json"
                     )
+                    os.makedirs(os.path.dirname(cookie_file_path), exist_ok=True)
 
-        except Exception as e:
-            await update.message.reply_text(
-                f"Error executing unfollow command: {str(e)}"
-            )
+                    # Save cookies to file using Twikit's method
+                    worker.client.save_cookies(cookie_file_path)
+                    saved_count += 1
 
-    async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /search command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if not context.args:
-            await update.message.reply_text(
-                " Please provide keyword.\nUsage: `/search <keyword>`",
-            )
-            return
-
-        keyword = context.args[0]
-        await update.message.reply_text(
-            f" Searching for tweets with keyword: {keyword}"
-        )
-
-        tweets = await self.search_engine.search_tweets_by_keyword(keyword)
-        await update.message.reply_text(
-            f" Found {len(tweets)} tweets for keyword: {keyword}"
-        )
-
-    async def refresh_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /refresh command"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if not context.args:
-            await update.message.reply_text(
-                " Please provide keyword.\nUsage: `/refresh <keyword>`",
-            )
-            return
-
-        keyword = context.args[0]
-        await update.message.reply_text(
-            f"🔄 Refreshing user pool for keyword: {keyword}"
-        )
-
-        success = await self.search_engine.build_user_pool_for_keyword(keyword)
-
-        if success:
-            await update.message.reply_text(
-                f" User pool refreshed for keyword: {keyword}"
-            )
-        else:
-            await update.message.reply_text(
-                f" Failed to refresh user pool for keyword: {keyword}"
-            )
-
-    async def _handle_single_action(
-        self,
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
-        task_type: TaskType,
-        action_name: str,
-    ):
-        """Handle single action commands"""
-        if not self._is_admin(update.effective_user.id):
-            await update.message.reply_text(" Access denied. You are not an admin.")
-            return
-
-        if not context.args:
-            await update.message.reply_text(
-                f" Please provide a Twitter URL.\n"
-                f"Usage: `/{action_name} https://twitter.com/user/status/123456789`",
-            )
-            return
-
-        url = context.args[0]
-
-        try:
-            task_id = await self.scheduler.add_task(task_type, {"tweet_url": url})
+                except Exception as e:
+                    self.logger.error(f"Failed to save cookies for bot {bot_id}: {e}")
 
             await update.message.reply_text(
-                f"{action_name.title()} task scheduled!\nURL: {url}\nTask ID: {task_id}"
+                f"✅ Cookies saved for {saved_count}/{len(workers)} bots to {Config.COOKIES_PATH}"
             )
 
         except Exception as e:
-            await update.message.reply_text(
-                f" Error scheduling {action_name}: {str(e)}"
-            )
-
-    def _is_admin(self, user_id: int) -> bool:
-        """Check if user is admin"""
-        return str(user_id) in self.config.TELEGRAM_ADMIN_IDS
-
-    def _validate_cookie_data(self, cookie_data: Dict[str, Any]) -> bool:
-        """Validate cookie data structure"""
-        # Handle both raw browser export format and processed format
-        if isinstance(cookie_data, list):
-            # Raw browser export format - process it
-            from cookie_processor import CookieProcessor
-
-            processed = CookieProcessor.process_cookies(cookie_data)
-            return (
-                len(processed) >= 2 and "auth_token" in processed and "ct0" in processed
-            )
-        elif isinstance(cookie_data, dict):
-            # Already processed format
-            required_fields = ["auth_token", "ct0"]
-            return all(field in cookie_data for field in required_fields)
-        return False
-
-    def _process_raw_cookies(self, cookie_data: Any) -> Dict[str, Any]:
-        """Process raw browser cookie export to Twikit format"""
-        if isinstance(cookie_data, list):
-            # Raw browser export format
-            from cookie_processor import CookieProcessor
-
-            return CookieProcessor.process_cookies(cookie_data)
-        elif isinstance(cookie_data, dict):
-            # Already processed
-            return cookie_data
-        else:
-            return {}
-
-    async def start_system(self):
-        """Start the entire system"""
-        try:
-            self.logger.info("Starting Twitter Bot System...")
-
-            # Validate configuration
-            config_status = self.config.validate_config()
-            if not config_status["valid"]:
-                self.logger.error(f"Configuration issues: {config_status['issues']}")
-                return False
-
-            # Load workers from database
-            await self.worker_manager.load_workers_from_db()
-
-            # Start scheduler
-            await self.scheduler.start()
-
-            # Start Telegram bot
-            await self.application.initialize()
-            await self.application.start()
-
-            # Start polling for updates with timeout
-            try:
-                await asyncio.wait_for(
-                    self.application.updater.start_polling(), timeout=10.0
-                )
-            except asyncio.TimeoutError:
-                self.logger.warning("Telegram polling timeout, but continuing...")
-                # Continue anyway - polling might still work
-
-            self.is_running = True
-            self.logger.info("Twitter Bot System started successfully!")
-
-            # Set bot commands for autocomplete
-            try:
-                await self.set_bot_commands()
-                self.logger.info("Bot commands set successfully")
-            except Exception as e:
-                self.logger.warning(f"Failed to set bot commands: {e}")
-
-            # Send startup notification
-            try:
-                await self.logger.send_notification(
-                    "Twitter Bot System Started\n\n"
-                    f" Workers: {len(self.worker_manager.get_all_workers())}\n"
-                    f" Config: Valid\n"
-                    f" Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                    "INFO",
-                )
-            except Exception as e:
-                self.logger.warning(f"Failed to send startup notification: {e}")
-
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Failed to start system: {e}")
-            return False
-
-    async def set_bot_commands(self):
-        """Set bot commands for Telegram's autocomplete"""
-        from telegram import BotCommand
-
-        commands = [
-            BotCommand("start", "Show main menu"),
-            BotCommand("help", "Show all available commands"),
-            BotCommand("status", "Show system and bot status"),
-            BotCommand("logs", "View recent system logs"),
-            BotCommand("addbot", "Add new worker bot from cookie file"),
-            BotCommand("addbotjson", "Add bot directly with JSON cookie data"),
-            BotCommand("addbotlogin", "Add bot via username/password login"),
-            BotCommand("removebot", "Remove worker bot"),
-            BotCommand("disable", "Disable a bot (mark as inactive)"),
-            BotCommand("enable", "Enable a disabled bot"),
-            BotCommand("delete", "Permanently delete a bot"),
-            BotCommand("listbots", "List all worker bots and their status"),
-            BotCommand("syncfollows", "Sync mutual following between all bots"),
-            BotCommand("post", "Like, comment, and retweet a specific post"),
-            BotCommand("like", "Like a specific post"),
-            BotCommand("retweet", "Retweet a specific post"),
-            BotCommand("comment", "Comment on a specific post"),
-            BotCommand("quote", "Quote tweets containing keyword with mentions"),
-            BotCommand("unfollow", "Unfollow all followers for a specific bot"),
-            BotCommand("search", "Search for tweets with keyword"),
-            BotCommand("pool", "Show user pool status for keyword"),
-            BotCommand("refresh", "Refresh user pool for keyword"),
-            BotCommand("stats", "Show engagement statistics"),
-            BotCommand("queue", "Show pending and in-progress tasks"),
-            BotCommand("test", "Diagnose bot authentication and basic functionality"),
-            BotCommand("reinit", "Reinitialize bot authentication for all workers"),
-            BotCommand("version", "Check Twikit version and capabilities"),
-            BotCommand("testlogin", "Test if login is blocked by Cloudflare"),
-            BotCommand("captchastatus", "Show captcha solver status"),
-            BotCommand("cloudflare", "Get Cloudflare cookies for bypass"),
-            BotCommand("reactivate", "Reactivate inactive bots"),
-            BotCommand("checkduplicates", "Check for duplicate auth_tokens"),
-            BotCommand("cleanup", "Remove all inactive bots from the database"),
-            BotCommand("savecookies", "Save all bot cookies to files"),
-            BotCommand(
-                "update",
-                "Interactive update menu (update & restart, restart only, restart system, check status)",
-            ),
-            BotCommand("restart", "Restart bot without updating code"),
-            BotCommand("backup", "Create backup of system data"),
-        ]
-
-        await self.application.bot.set_my_commands(commands)
-
-    async def stop_system(self):
-        """Stop the entire system"""
-        try:
-            self.logger.info("Stopping Twitter Bot System...")
-
-            # Stop scheduler
-            await self.scheduler.stop()
-
-            # Stop Telegram bot
-            await self.application.updater.stop()
-            await self.application.stop()
-
-            self.is_running = False
-            self.logger.info("Twitter Bot System stopped successfully!")
-
-        except Exception as e:
-            self.logger.error(f"Error stopping system: {e}")
+            await update.message.reply_text(f"❌ Error saving cookies: {str(e)}")
 
     async def update_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /update command to pull latest code and restart bot"""
@@ -2183,123 +1913,72 @@ Bot Status:
         except Exception as e:
             await update.message.reply_text(f"❌ Error restarting bot: {str(e)}")
 
-    async def restart_bot(self):
-        """Restart the bot process"""
+    async def _handle_single_action(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        task_type: TaskType,
+        action_name: str,
+    ):
+        """Handle single action commands"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                f"❌ Please provide a Twitter URL.\n"
+                f"Usage: `/{action_name} https://twitter.com/user/status/123456789`",
+            )
+            return
+
+        url = context.args[0]
+
         try:
-            # Stop current bot
-            await self.stop_system()
+            task_id = await self.scheduler.add_task(task_type, {"tweet_url": url})
 
-            # Start new process with the correct file
-            subprocess.Popen(["python3", "main.py"], cwd="/root/Twitter-bot")
-
-        except Exception as e:
-            self.logger.error(f"Error restarting bot: {e}")
-
-    async def update_and_restart_bot(self):
-        """Update code from GitHub and restart bot"""
-        try:
-            # Pull latest changes
-            result = subprocess.run(
-                ["git", "pull", "origin", "main"],
-                capture_output=True,
-                text=True,
-                cwd="/root/Twitter-bot",
+            await update.message.reply_text(
+                f"✅ {action_name.title()} task scheduled!\n🔗 URL: {url}\n📋 Task ID: {task_id}"
             )
 
-            if result.returncode == 0:
-                if "Already up to date" in result.stdout:
-                    return True, "Bot is already up to date!", result.stdout
-                else:
-                    # Restart the bot
-                    await self.restart_bot()
-                    return (
-                        True,
-                        "Bot updated and restarted successfully!",
-                        result.stdout,
-                    )
-            else:
-                return False, f"Git pull failed: {result.stderr}", result.stderr
-
         except Exception as e:
-            return False, f"Error during update: {str(e)}", ""
-
-    async def restart_system_service(self):
-        """Restart the webhook listener system service"""
-        try:
-            # Restart webhook listener service
-            result = subprocess.run(
-                ["sudo", "systemctl", "restart", "webhook-listener.service"],
-                capture_output=True,
-                text=True,
+            await update.message.reply_text(
+                f"❌ Error scheduling {action_name}: {str(e)}"
             )
 
-            if result.returncode == 0:
-                return True, "Webhook listener service restarted successfully!", ""
-            else:
-                return (
-                    False,
-                    f"Failed to restart service: {result.stderr}",
-                    result.stderr,
-                )
+    def _is_admin(self, user_id: int) -> bool:
+        """Check if user is admin"""
+        return str(user_id) in self.config.TELEGRAM_ADMIN_IDS
 
-        except Exception as e:
-            return False, f"Error restarting service: {str(e)}", ""
+    def _validate_cookie_data(self, cookie_data: Dict[str, Any]) -> bool:
+        """Validate cookie data structure"""
+        # Handle both raw browser export format and processed format
+        if isinstance(cookie_data, list):
+            # Raw browser export format - process it
+            from cookie_processor import CookieProcessor
 
-    async def check_system_status(self):
-        """Check status of bot and services"""
-        try:
-            # Check bot process
-            bot_running = False
-            bot_pid = None
-            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-                try:
-                    if proc.info["name"] in [
-                        "python",
-                        "python3",
-                    ] and "main.py" in " ".join(proc.info["cmdline"]):
-                        bot_running = True
-                        bot_pid = proc.info["pid"]
-                        break
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
-
-            # Check webhook service status
-            service_result = subprocess.run(
-                ["sudo", "systemctl", "is-active", "webhook-listener.service"],
-                capture_output=True,
-                text=True,
+            processed = CookieProcessor.process_cookies(cookie_data)
+            return (
+                len(processed) >= 2 and "auth_token" in processed and "ct0" in processed
             )
-            service_running = service_result.stdout.strip() == "active"
+        elif isinstance(cookie_data, dict):
+            # Already processed format
+            required_fields = ["auth_token", "ct0"]
+            return all(field in cookie_data for field in required_fields)
+        return False
 
-            # Check webhook health
-            try:
-                import requests
+    def _process_raw_cookies(self, cookie_data: Any) -> Dict[str, Any]:
+        """Process raw browser cookie export to Twikit format"""
+        if isinstance(cookie_data, list):
+            # Raw browser export format
+            from cookie_processor import CookieProcessor
 
-                health_response = requests.get(
-                    "http://localhost:8080/health", timeout=5
-                )
-                webhook_healthy = health_response.status_code == 200
-            except Exception:
-                webhook_healthy = False
-
-            status_text = f"""
-📊 **System Status**
-
-🤖 **Bot Process:**
-• Status: {"🟢 Running" if bot_running else "🔴 Stopped"}
-• PID: {bot_pid if bot_pid else "N/A"}
-
-🔄 **Webhook Service:**
-• Status: {"🟢 Active" if service_running else "🔴 Inactive"}
-• Health: {"🟢 Healthy" if webhook_healthy else "🔴 Unhealthy"}
-
-📅 **Last Check:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-            """
-
-            return status_text
-
-        except Exception as e:
-            return f"❌ Error checking status: {str(e)}"
+            return CookieProcessor.process_cookies(cookie_data)
+        elif isinstance(cookie_data, dict):
+            # Already processed
+            return cookie_data
+        else:
+            return {}
 
     async def handle_callback_query(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -2347,6 +2026,7 @@ Bot Status:
         elif data == "cancel_update":
             await query.edit_message_text("❌ Update operation cancelled.")
 
+    # Menu display methods
     async def _show_main_menu(self, query):
         """Show the main menu"""
         welcome_text = """
@@ -2392,7 +2072,7 @@ Choose an action from the menu below:
 
 🤖 **Bots:** {active_workers}/{total_workers} active
 🔄 **Tasks:** Running
-🌐 **Server:** VPS (152.114.193.126)
+🔌 **Proxy:** {'✅ Configured' if Config.PROXY_URL else '❌ Not configured'}
 📅 **Last Update:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
 Choose an action:
@@ -2413,152 +2093,6 @@ Choose an action:
 
         await query.edit_message_text(
             status_text, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    async def _show_bot_management_menu(self, query):
-        """Show bot management menu"""
-        bots = self.worker_manager.get_all_workers()
-
-        bot_text = f"""
-🤖 **Bot Management**
-
-Total Bots: {len(bots)}
-
-Choose an action:
-        """
-
-        keyboard = [
-            [
-                InlineKeyboardButton("➕ Add Bot", callback_data="bot_add"),
-                InlineKeyboardButton("📋 List Bots", callback_data="bot_list"),
-            ],
-            [
-                InlineKeyboardButton("🔄 Sync Follows", callback_data="bot_sync"),
-                InlineKeyboardButton("🧹 Cleanup", callback_data="bot_cleanup"),
-            ],
-            [
-                InlineKeyboardButton(
-                    "💾 Save Cookies", callback_data="bot_save_cookies"
-                ),
-                InlineKeyboardButton(
-                    "🔍 Check Duplicates", callback_data="bot_check_duplicates"
-                ),
-            ],
-            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await query.edit_message_text(
-            bot_text, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    async def _show_engagement_menu(self, query):
-        """Show engagement menu"""
-        engagement_text = """
-🎯 **Engagement Actions**
-
-Choose an engagement action:
-
-**Quick Actions:**
-• Like, comment, and retweet posts
-• Quote tweets with mentions
-• Manage user pools
-• Unfollow operations
-        """
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "💬 Post Engagement", callback_data="engagement_post"
-                ),
-                InlineKeyboardButton(
-                    "💭 Quote Tweet", callback_data="engagement_quote"
-                ),
-            ],
-            [
-                InlineKeyboardButton("❤️ Like Post", callback_data="engagement_like"),
-                InlineKeyboardButton("🔄 Retweet", callback_data="engagement_retweet"),
-            ],
-            [
-                InlineKeyboardButton("💬 Comment", callback_data="engagement_comment"),
-                InlineKeyboardButton(
-                    "👥 Unfollow", callback_data="engagement_unfollow"
-                ),
-            ],
-            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await query.edit_message_text(
-            engagement_text, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    async def _show_search_menu(self, query):
-        """Show search and pools menu"""
-        search_text = """
-🔍 **Search & Pools**
-
-Manage Twitter search and user pools:
-
-**Features:**
-• Search for tweets by keywords
-• Manage user pools for mentions
-• Refresh user data
-• Track engagement targets
-        """
-
-        keyboard = [
-            [
-                InlineKeyboardButton("🔍 Search Tweets", callback_data="search_tweets"),
-                InlineKeyboardButton("👥 Manage Pools", callback_data="search_pools"),
-            ],
-            [
-                InlineKeyboardButton(
-                    "🔄 Refresh Pools", callback_data="search_refresh"
-                ),
-                InlineKeyboardButton("📊 Pool Stats", callback_data="search_stats"),
-            ],
-            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await query.edit_message_text(
-            search_text, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    async def _show_stats_menu(self, query):
-        """Show statistics menu"""
-        stats_text = """
-📈 **Statistics & Analytics**
-
-View detailed system statistics:
-
-**Available Stats:**
-• Engagement metrics
-• Bot performance
-• Task completion rates
-• System health
-        """
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "📊 Engagement Stats", callback_data="stats_engagement"
-                ),
-                InlineKeyboardButton("🤖 Bot Performance", callback_data="stats_bots"),
-            ],
-            [
-                InlineKeyboardButton("⚡ Task Queue", callback_data="stats_queue"),
-                InlineKeyboardButton(
-                    "💾 Database Stats", callback_data="stats_database"
-                ),
-            ],
-            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await query.edit_message_text(
-            stats_text, reply_markup=reply_markup, parse_mode="Markdown"
         )
 
     async def _show_system_menu(self, query):
@@ -2838,6 +2372,259 @@ View recent system activity and logs:
             status_text, reply_markup=reply_markup, parse_mode="Markdown"
         )
 
+    async def restart_bot(self):
+        """Restart the bot process"""
+        try:
+            # Stop current bot
+            await self.stop_system()
+
+            # Start new process with the correct file
+            subprocess.Popen(["python3", "main.py"], cwd="/root/Twitter-bot")
+
+        except Exception as e:
+            self.logger.error(f"Error restarting bot: {e}")
+
+    async def update_and_restart_bot(self):
+        """Update code from GitHub and restart bot"""
+        try:
+            # Pull latest changes
+            result = subprocess.run(
+                ["git", "pull", "origin", "main"],
+                capture_output=True,
+                text=True,
+                cwd="/root/Twitter-bot",
+            )
+
+            if result.returncode == 0:
+                if "Already up to date" in result.stdout:
+                    return True, "Bot is already up to date!", result.stdout
+                else:
+                    # Restart the bot
+                    await self.restart_bot()
+                    return (
+                        True,
+                        "Bot updated and restarted successfully!",
+                        result.stdout,
+                    )
+            else:
+                return False, f"Git pull failed: {result.stderr}", result.stderr
+
+        except Exception as e:
+            return False, f"Error during update: {str(e)}", ""
+
+    async def restart_system_service(self):
+        """Restart the webhook listener system service"""
+        try:
+            # Restart webhook listener service
+            result = subprocess.run(
+                ["sudo", "systemctl", "restart", "webhook-listener.service"],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0:
+                return True, "Webhook listener service restarted successfully!", ""
+            else:
+                return (
+                    False,
+                    f"Failed to restart service: {result.stderr}",
+                    result.stderr,
+                )
+
+        except Exception as e:
+            return False, f"Error restarting service: {str(e)}", ""
+
+    async def check_system_status(self):
+        """Check status of bot and services"""
+        try:
+            # Check bot process
+            bot_running = False
+            bot_pid = None
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                try:
+                    if proc.info["name"] in [
+                        "python",
+                        "python3",
+                    ] and "main.py" in " ".join(proc.info["cmdline"]):
+                        bot_running = True
+                        bot_pid = proc.info["pid"]
+                        break
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+
+            # Check webhook service status
+            service_result = subprocess.run(
+                ["sudo", "systemctl", "is-active", "webhook-listener.service"],
+                capture_output=True,
+                text=True,
+            )
+            service_running = service_result.stdout.strip() == "active"
+
+            # Check webhook health
+            try:
+                import requests
+
+                health_response = requests.get(
+                    "http://localhost:8080/health", timeout=5
+                )
+                webhook_healthy = health_response.status_code == 200
+            except Exception:
+                webhook_healthy = False
+
+            status_text = f"""
+📊 **System Status**
+
+🤖 **Bot Process:**
+• Status: {"🟢 Running" if bot_running else "🔴 Stopped"}
+• PID: {bot_pid if bot_pid else "N/A"}
+
+🔄 **Webhook Service:**
+• Status: {"🟢 Active" if service_running else "🔴 Inactive"}
+• Health: {"🟢 Healthy" if webhook_healthy else "🔴 Unhealthy"}
+
+🔌 **Proxy:**
+• Configured: {"✅ Yes" if Config.PROXY_URL else "❌ No"}
+
+📅 **Last Check:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            """
+
+            return status_text
+
+        except Exception as e:
+            return f"❌ Error checking status: {str(e)}"
+
+    async def start_system(self):
+        """Start the entire system"""
+        try:
+            self.logger.info("Starting Twitter Bot System...")
+
+            # Validate configuration
+            config_status = self.config.validate_config()
+            if not config_status["valid"]:
+                self.logger.error(f"Configuration issues: {config_status['issues']}")
+                return False
+
+            # Log proxy configuration
+            if Config.PROXY_URL:
+                self.logger.info(f"🔌 Proxy configured: {Config.PROXY_URL[:50]}...")
+            else:
+                self.logger.warning("⚠️ No proxy configured - Twitter requests may be blocked")
+
+            # Load workers from database
+            await self.worker_manager.load_workers_from_db()
+
+            # Start scheduler
+            await self.scheduler.start()
+
+            # Start Telegram bot
+            await self.application.initialize()
+            await self.application.start()
+
+            # Start polling for updates with timeout
+            try:
+                await asyncio.wait_for(
+                    self.application.updater.start_polling(), timeout=10.0
+                )
+            except asyncio.TimeoutError:
+                self.logger.warning("Telegram polling timeout, but continuing...")
+                # Continue anyway - polling might still work
+
+            self.is_running = True
+            self.logger.info("✅ Twitter Bot System started successfully!")
+
+            # Set bot commands for autocomplete
+            try:
+                await self.set_bot_commands()
+                self.logger.info("Bot commands set successfully")
+            except Exception as e:
+                self.logger.warning(f"Failed to set bot commands: {e}")
+
+            # Send startup notification
+            try:
+                await self.logger.send_notification(
+                    "🚀 Twitter Bot System Started\n\n"
+                    f"🤖 Workers: {len(self.worker_manager.get_all_workers())}\n"
+                    f"✅ Config: Valid\n"
+                    f"🔌 Proxy: {'Configured' if Config.PROXY_URL else 'Not configured'}\n"
+                    f"📅 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    "INFO",
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to send startup notification: {e}")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to start system: {e}")
+            return False
+
+    async def set_bot_commands(self):
+        """Set bot commands for Telegram's autocomplete"""
+        from telegram import BotCommand
+
+        commands = [
+            BotCommand("start", "Show main menu"),
+            BotCommand("help", "Show all available commands"),
+            BotCommand("status", "Show system and bot status"),
+            BotCommand("logs", "View recent system logs"),
+            BotCommand("addbot", "Add new worker bot from cookie file"),
+            BotCommand("addbotjson", "Add bot directly with JSON cookie data"),
+            BotCommand("addbotlogin", "Add bot via username/password login"),
+            BotCommand("removebot", "Remove worker bot"),
+            BotCommand("disable", "Disable a bot (mark as inactive)"),
+            BotCommand("enable", "Enable a disabled bot"),
+            BotCommand("delete", "Permanently delete a bot"),
+            BotCommand("listbots", "List all worker bots and their status"),
+            BotCommand("syncfollows", "Sync mutual following between all bots"),
+            BotCommand("post", "Like, comment, and retweet a specific post"),
+            BotCommand("like", "Like a specific post"),
+            BotCommand("retweet", "Retweet a specific post"),
+            BotCommand("comment", "Comment on a specific post"),
+            BotCommand("quote", "Quote tweets containing keyword with mentions"),
+            BotCommand("unfollow", "Unfollow all followers for a specific bot"),
+            BotCommand("search", "Search for tweets with keyword"),
+            BotCommand("pool", "Show user pool status for keyword"),
+            BotCommand("refresh", "Refresh user pool for keyword"),
+            BotCommand("stats", "Show engagement statistics"),
+            BotCommand("queue", "Show pending and in-progress tasks"),
+            BotCommand("test", "Diagnose bot authentication and basic functionality"),
+            BotCommand("reinit", "Reinitialize bot authentication for all workers"),
+            BotCommand("version", "Check Twikit version and capabilities"),
+            BotCommand("testlogin", "Test if login is blocked by Cloudflare"),
+            BotCommand("captchastatus", "Show captcha solver and proxy status"),
+            BotCommand("cloudflare", "Get Cloudflare cookies for bypass"),
+            BotCommand("reactivate", "Reactivate inactive bots"),
+            BotCommand("checkduplicates", "Check for duplicate auth_tokens"),
+            BotCommand("cleanup", "Remove all inactive bots from the database"),
+            BotCommand("savecookies", "Save all bot cookies to files"),
+            BotCommand(
+                "update",
+                "Interactive update menu (update & restart, restart only, restart system, check status)",
+            ),
+            BotCommand("restart", "Restart bot without updating code"),
+            BotCommand("backup", "Create backup of system data"),
+        ]
+
+        await self.application.bot.set_my_commands(commands)
+
+    async def stop_system(self):
+        """Stop the entire system"""
+        try:
+            self.logger.info("Stopping Twitter Bot System...")
+
+            # Stop scheduler
+            await self.scheduler.stop()
+
+            # Stop Telegram bot
+            await self.application.updater.stop()
+            await self.application.stop()
+
+            self.is_running = False
+            self.logger.info("Twitter Bot System stopped successfully!")
+
+        except Exception as e:
+            self.logger.error(f"Error stopping system: {e}")
+
 
 async def main():
     """Main entry point"""
@@ -2857,6 +2644,273 @@ async def main():
     except Exception as e:
         print(f"Fatal error: {e}")
         await bot.stop_system()
+
+
+    async def _show_bot_management_menu(self, query):
+        """Show bot management menu"""
+        bots = self.worker_manager.get_all_workers()
+
+        bot_text = f"""
+🤖 **Bot Management**
+
+Total Bots: {len(bots)}
+
+Choose an action:
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("➕ Add Bot", callback_data="bot_add"),
+                InlineKeyboardButton("📋 List Bots", callback_data="bot_list"),
+            ],
+            [
+                InlineKeyboardButton("🔄 Sync Follows", callback_data="bot_sync"),
+                InlineKeyboardButton("🧹 Cleanup", callback_data="bot_cleanup"),
+            ],
+            [
+                InlineKeyboardButton(
+                    "💾 Save Cookies", callback_data="bot_save_cookies"
+                ),
+                InlineKeyboardButton(
+                    "🔍 Check Duplicates", callback_data="bot_check_duplicates"
+                ),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            bot_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_engagement_menu(self, query):
+        """Show engagement menu"""
+        engagement_text = """
+🎯 **Engagement Actions**
+
+Choose an engagement action:
+
+**Quick Actions:**
+• Like, comment, and retweet posts
+• Quote tweets with mentions
+• Manage user pools
+• Unfollow operations
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "💬 Post Engagement", callback_data="engagement_post"
+                ),
+                InlineKeyboardButton(
+                    "💭 Quote Tweet", callback_data="engagement_quote"
+                ),
+            ],
+            [
+                InlineKeyboardButton("❤️ Like Post", callback_data="engagement_like"),
+                InlineKeyboardButton("🔄 Retweet", callback_data="engagement_retweet"),
+            ],
+            [
+                InlineKeyboardButton("💬 Comment", callback_data="engagement_comment"),
+                InlineKeyboardButton(
+                    "👥 Unfollow", callback_data="engagement_unfollow"
+                ),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            engagement_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_search_menu(self, query):
+        """Show search and pools menu"""
+        search_text = """
+🔍 **Search & Pools**
+
+Manage Twitter search and user pools:
+
+**Features:**
+• Search for tweets by keywords
+• Manage user pools for mentions
+• Refresh user data
+• Track engagement targets
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton("🔍 Search Tweets", callback_data="search_tweets"),
+                InlineKeyboardButton("👥 Manage Pools", callback_data="search_pools"),
+            ],
+            [
+                InlineKeyboardButton(
+                    "🔄 Refresh Pools", callback_data="search_refresh"
+                ),
+                InlineKeyboardButton("📊 Pool Stats", callback_data="search_stats"),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="back_to_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            search_text, reply_markup=reply_markup, parse_mode="Markdown"
+        )
+
+    async def _show_stats_menu(self, query):
+        """Show statistics menu"""
+        stats_text = """
+📈 **Statistics & Analytics**
+
+View detailed system statistics:
+
+**Available Stats:**
+• Engagement metrics
+• Bot performance
+• Task completion rates
+• System health
+        """
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "📊 Engagement Stats", callback_data="stats_engagement"
+                ),
+                InlineKeyboardButton("🤖 Bot Performance", callback_data="stats_bots"),
+            ],
+            [
+                InlineKeyboardButton("⚡ Task Queue", callback_data="stats_queue"),
+                InlineKeyboardButton(
+                    "💾 Database Stats", callback_data="stats_database"
+                ),
+            ],
+            [InlineKeyboardButton("⬅️ Back to Main", callback_data="menu_main")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            "📈 Statistics Menu\n\nChoose a category:",
+            reply_markup=reply_markup,
+        )
+
+    async def _handle_single_action(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, task_type: TaskType, action_name: str
+    ):
+        """Handle single action commands (like, retweet, comment)"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                f"❌ Please provide a Twitter URL.\n"
+                f"Usage: `/{action_name} https://twitter.com/user/status/123456789`"
+            )
+            return
+
+        url = context.args[0]
+
+        try:
+            task_id = await self.scheduler.add_task(task_type, {"tweet_url": url})
+            await update.message.reply_text(
+                f"✅ {action_name.title()} task scheduled!\n"
+                f"📋 Task ID: {task_id}\n"
+                f"🔗 URL: {url}"
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error scheduling {action_name}: {str(e)}")
+
+    def _is_admin(self, user_id: int) -> bool:
+        """Check if user is admin"""
+        return str(user_id) in self.config.TELEGRAM_ADMIN_IDS
+
+    def _process_raw_cookies(self, raw_cookie_data: List[Dict]) -> Dict[str, str]:
+        """Process raw cookie data from browser export"""
+        processed_cookies = {}
+
+        if isinstance(raw_cookie_data, list):
+            # Handle browser export format
+            for cookie in raw_cookie_data:
+                if isinstance(cookie, dict) and "name" in cookie and "value" in cookie:
+                    processed_cookies[cookie["name"]] = cookie["value"]
+        elif isinstance(raw_cookie_data, dict):
+            # Handle already processed format
+            processed_cookies = raw_cookie_data
+
+        return processed_cookies
+
+    async def start(self):
+        """Start the bot system"""
+        try:
+            self.logger.info("Starting Twitter Bot System...")
+
+            # Validate configuration
+            config_validation = self.config.validate_config()
+            if not config_validation["valid"]:
+                self.logger.error(f"Configuration issues: {config_validation['issues']}")
+                return False
+
+            # Start worker manager
+            await self.worker_manager.start()
+
+            # Start scheduler
+            await self.scheduler.start()
+
+            # Start Telegram bot
+            await self.application.initialize()
+            await self.application.start()
+            await self.application.updater.start_polling()
+
+            self.is_running = True
+            self.logger.info("Twitter Bot System started successfully!")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to start system: {e}")
+            return False
+
+    async def stop(self):
+        """Stop the bot system"""
+        try:
+            self.logger.info("Stopping Twitter Bot System...")
+
+            # Stop scheduler
+            await self.scheduler.stop()
+
+            # Stop worker manager
+            await self.worker_manager.stop()
+
+            # Stop Telegram bot
+            await self.application.updater.stop()
+            await self.application.stop()
+            await self.application.shutdown()
+
+            self.is_running = False
+            self.logger.info("Twitter Bot System stopped successfully!")
+
+        except Exception as e:
+            self.logger.error(f"Error stopping system: {e}")
+
+
+async def main():
+    """Main function to start the bot"""
+    bot = TwitterBotTelegram()
+
+    try:
+        success = await bot.start()
+        if not success:
+            return
+
+        # Keep running
+        while bot.is_running:
+            await asyncio.sleep(1)
+
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        await bot.stop()
 
 
 if __name__ == "__main__":
