@@ -128,7 +128,7 @@ class TwitterWorker:
                     self.logger.info(
                         f"Bot {self.bot_id} trying method 2: get_user_by_id from twid"
                     )
-                    twid = self.cookie_data.get("twid", "").replace("u%3D", "")
+                    twid = self.cookie_data.get("twid", "")
                     if twid:
                         user = self.client.get_user_by_id(twid)
                         if user:
