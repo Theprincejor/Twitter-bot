@@ -893,28 +893,9 @@ Bot Status:
                     # Try to obtain Cloudflare cookies
                     result = await solver.get_cloudflare_cookies()
                     if isinstance(result, dict) and result.get("success") and result.get("cookies"):
-                        # Persist to a temporary cookie file and load into client
-                        cf_cookie_file = os.path.join(
-                            Config.COOKIES_PATH,
-                            f"{bot_id}_cf_presolve.json",
-                        )
-                        os.makedirs(os.path.dirname(cf_cookie_file), exist_ok=True)
-                        # Ensure JSON-serializable content
-                        payload = {
-                            "cookies": dict(result.get("cookies", {})),
-                            "user_agent": str(result.get("user_agent", "")),
-                            "timestamp": datetime.now().isoformat(),
-                            "source": "cloudflare_bypass_presolve",
-                        }
-                        with open(cf_cookie_file, "w") as f:
-                            json.dump(payload, f, indent=2)
-
-                        # Load into the Twikit client before login
-                        try:
-                            temp_client.load_cookies(cf_cookie_file)
-                        except Exception:
-                            pass
-                        await update.message.reply_text("🌐 Cloudflare cookies preloaded for login attempt")
+                        # We will not inject cookies into Twikit to avoid format mismatches.
+                        # Just inform user that CF bypass is active; proceed to login.
+                        await update.message.reply_text("🌐 Cloudflare bypass active; proceeding to login")
             except Exception:
                 # Non-fatal; continue with normal login flow
                 pass
