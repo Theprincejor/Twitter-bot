@@ -914,12 +914,12 @@ Bot Status:
 
             # Attempt login with username/password
             if cookies_file_supported:
-            login_result = await temp_client.login(
-                auth_info_1=username,
-                auth_info_2=email,  # Optional email
-                password=password,
-                cookies_file=cookie_file_path,  # Auto-save cookies to file
-            )
+                login_result = await temp_client.login(
+                    auth_info_1=username,
+                    auth_info_2=email,  # Optional email
+                    password=password,
+                    cookies_file=cookie_file_path,  # Auto-save cookies to file
+                )
             else:
                 # Fallback for older twikit versions
                 login_result = await temp_client.login(
