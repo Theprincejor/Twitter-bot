@@ -914,21 +914,36 @@ Bot Status:
             except Exception:
                 cookies_file_supported = False
 
-            # Attempt login with username/password
-            if cookies_file_supported:
-                login_result = await temp_client.login(
-                    auth_info_1=username,
-                    auth_info_2=email,  # Optional email
-                    password=password,
-                    cookies_file=cookie_file_path,  # Auto-save cookies to file
-                )
-            else:
-                # Fallback for older twikit versions
-                login_result = await temp_client.login(
-                    auth_info_1=username,
-                    auth_info_2=email,  # Optional email
-                    password=password,
-                )
+            # Attempt login with username/password (with detailed error logging)
+            try:
+                if cookies_file_supported:
+                    login_result = await temp_client.login(
+                        auth_info_1=username,
+                        auth_info_2=email,  # Optional email
+                        password=password,
+                        cookies_file=cookie_file_path,  # Auto-save cookies to file
+                    )
+                else:
+                    # Fallback for older twikit versions
+                    login_result = await temp_client.login(
+                        auth_info_1=username,
+                        auth_info_2=email,  # Optional email
+                        password=password,
+                    )
+            except Exception as e:
+                # Surface deeper diagnostics in logs to understand provider response
+                self.logger.error(f"Login request failed: {type(e).__name__}: {str(e)}")
+                # Try to extract httpx response details if present
+                resp = getattr(e, "response", None)
+                if resp is not None:
+                    try:
+                        body_snippet = resp.text[:500] if hasattr(resp, "text") else str(resp)[:500]
+                        self.logger.error(
+                            f"Login HTTP response: status={getattr(resp, 'status_code', 'n/a')} body_snippet={body_snippet}"
+                        )
+                    except Exception:
+                        pass
+                raise
 
             # Check if login was successful
             if login_result:
