@@ -862,7 +862,7 @@ Bot Status:
                 elif not supports_captcha and supports_proxy:
                     temp_client = Client(language="en-US", proxy=proxy_url)
                 else:
-                    temp_client = Client(language="en-US")
+                temp_client = Client(language="en-US")
             except TypeError as e:
                 # Fallbacks if runtime raises unexpected kw errors
                 if "captcha_solver" in str(e) and supports_proxy:
@@ -881,7 +881,7 @@ Bot Status:
                     if supports_captcha:
                         temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
                     else:
-                        temp_client = Client(language="en-US")
+                    temp_client = Client(language="en-US")
                 else:
                     temp_client = Client(language="en-US")
 
@@ -917,12 +917,12 @@ Bot Status:
             # Attempt login with username/password (with detailed error logging)
             try:
                 if cookies_file_supported:
-                    login_result = await temp_client.login(
-                        auth_info_1=username,
-                        auth_info_2=email,  # Optional email
-                        password=password,
-                        cookies_file=cookie_file_path,  # Auto-save cookies to file
-                    )
+            login_result = await temp_client.login(
+                auth_info_1=username,
+                auth_info_2=email,  # Optional email
+                password=password,
+                cookies_file=cookie_file_path,  # Auto-save cookies to file
+            )
                 else:
                     # Fallback for older twikit versions
                     login_result = await temp_client.login(

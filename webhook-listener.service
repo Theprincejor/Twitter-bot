@@ -6,10 +6,12 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/root/Twitter-bot
-Environment=PATH=/root/Twitter-bot/bot_env/bin
-ExecStart=/usr/bin/python3 webhook_listener.py
+ExecStart=/usr/bin/python3 /root/Twitter-bot/webhook_listener.py
 Restart=always
 RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=webhook-listener
 
 [Install]
 WantedBy=multi-user.target

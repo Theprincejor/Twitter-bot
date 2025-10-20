@@ -1,0 +1,42 @@
+warning: in the working copy of 'telegram_bot.py', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/telegram_bot.py b/telegram_bot.py[m
+[1mindex 439cf6f..c1e9ccc 100644[m
+[1m--- a/telegram_bot.py[m
+[1m+++ b/telegram_bot.py[m
+[36m@@ -862,7 +862,7 @@[m [mBot Status:[m
+                 elif not supports_captcha and supports_proxy:[m
+                     temp_client = Client(language="en-US", proxy=proxy_url)[m
+                 else:[m
+[31m-                temp_client = Client(language="en-US")[m
+[32m+[m[32m                    temp_client = Client(language="en-US")[m
+             except TypeError as e:[m
+                 # Fallbacks if runtime raises unexpected kw errors[m
+                 if "captcha_solver" in str(e) and supports_proxy:[m
+[36m@@ -881,7 +881,7 @@[m [mBot Status:[m
+                     if supports_captcha:[m
+                         temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)[m
+                     else:[m
+[31m-                    temp_client = Client(language="en-US")[m
+[32m+[m[32m                        temp_client = Client(language="en-US")[m
+                 else:[m
+                     temp_client = Client(language="en-US")[m
+ [m
+[36m@@ -917,12 +917,12 @@[m [mBot Status:[m
+             # Attempt login with username/password (with detailed error logging)[m
+             try:[m
+                 if cookies_file_supported:[m
+[31m-            login_result = await temp_client.login([m
+[31m-                auth_info_1=username,[m
+[31m-                auth_info_2=email,  # Optional email[m
+[31m-                password=password,[m
+[31m-                cookies_file=cookie_file_path,  # Auto-save cookies to file[m
+[31m-            )[m
+[32m+[m[32m                    login_result = await temp_client.login([m
+[32m+[m[32m                        auth_info_1=username,[m
+[32m+[m[32m                        auth_info_2=email,  # Optional email[m
+[32m+[m[32m                        password=password,[m
+[32m+[m[32m                        cookies_file=cookie_file_path,  # Auto-save cookies to file[m
+[32m+[m[32m                    )[m
+                 else:[m
+                     # Fallback for older twikit versions[m
+                     login_result = await temp_client.login([m
