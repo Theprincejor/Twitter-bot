@@ -34,7 +34,11 @@ class TwitterWorker:
         if proxy_url:
             os.environ["HTTP_PROXY"] = proxy_url
             os.environ["HTTPS_PROXY"] = proxy_url
-            self.logger.info(f"Bot {self.bot_id} configured to use proxy")
+            # Disable SSL verification for proxy
+            os.environ["PYTHONHTTPSVERIFY"] = "0"
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context
+            self.logger.info(f"Bot {self.bot_id} configured to use proxy with SSL verification disabled")
 
         # Work around the proxy parameter issue in newer Twikit versions
         try:
