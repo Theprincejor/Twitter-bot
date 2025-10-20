@@ -409,6 +409,22 @@ class Database:
         data = self._read_data()
         return data.get("statistics", {})
 
+    # Generic accessors used by other modules
+    def get_all_data(self) -> Dict[str, Any]:
+        """Return the entire decrypted database content."""
+        return self._read_data()
+
+    def set_data(self, key: str, value: Any) -> bool:
+        """Set a top-level key in the database and persist changes."""
+        try:
+            data = self._read_data()
+            data[key] = value
+            self._write_data(data)
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to set data for key '{key}': {e}")
+            return False
+
     def backup_database(self, backup_path: str = None) -> bool:
         """Create a backup of the database"""
         try:
