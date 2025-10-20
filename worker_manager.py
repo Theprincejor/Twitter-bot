@@ -29,6 +29,13 @@ class TwitterWorker:
         # Initialize client with captcha solver if available
         captcha_solver_instance = captcha_solver.get_captcha_solver()
 
+        # Set up proxy configuration
+        proxy_url = getattr(Config, "PROXY_URL", None)
+        if proxy_url:
+            os.environ["HTTP_PROXY"] = proxy_url
+            os.environ["HTTPS_PROXY"] = proxy_url
+            self.logger.info(f"Bot {self.bot_id} configured to use proxy")
+
         # Work around the proxy parameter issue in newer Twikit versions
         try:
             if captcha_solver_instance:
@@ -42,7 +49,7 @@ class TwitterWorker:
                 original_init = httpx.AsyncClient.__init__
 
                 def patched_init(self, *args, **kwargs):
-                    kwargs.pop("proxy", None)
+                    # Don't remove proxy - let it use environment variables
                     return original_init(self, *args, **kwargs)
 
                 httpx.AsyncClient.__init__ = patched_init
@@ -214,7 +221,7 @@ class TwitterWorker:
                     original_init = httpx.AsyncClient.__init__
 
                     def patched_init(self, *args, **kwargs):
-                        kwargs.pop("proxy", None)
+                        # Don't remove proxy - let it use environment variables
                         return original_init(self, *args, **kwargs)
 
                     httpx.AsyncClient.__init__ = patched_init
