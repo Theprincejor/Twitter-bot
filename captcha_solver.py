@@ -36,12 +36,17 @@ class CaptchaSolver:
             capsolver.api_key = self.config.CAPSOLVER_API_KEY
             
             # Test the API key
-            balance = capsolver.balance()
-            if balance.get('errorId') == 0:
+            try:
+                balance = capsolver.balance()
+                if isinstance(balance, dict) and balance.get('errorId') == 0:
+                    self.capsolver = capsolver
+                    print(f"✅ Capsolver initialized successfully - Balance: ${balance.get('balance', 0)}")
+                else:
+                    print(f"❌ Capsolver API key invalid: {balance}")
+            except Exception as balance_error:
+                # If balance check fails, still initialize capsolver
                 self.capsolver = capsolver
-                print(f"✅ Capsolver initialized successfully - Balance: ${balance.get('balance', 0)}")
-            else:
-                print(f"❌ Capsolver API key invalid: {balance}")
+                print(f"✅ Capsolver initialized (balance check failed: {balance_error})")
         except ImportError:
             print("⚠️ Capsolver not available - install capsolver package")
         except Exception as e:
