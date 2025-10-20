@@ -862,7 +862,7 @@ Bot Status:
                 elif not supports_captcha and supports_proxy:
                     temp_client = Client(language="en-US", proxy=proxy_url)
                 else:
-                    temp_client = Client(language="en-US")
+                temp_client = Client(language="en-US")
             except TypeError as e:
                 # Fallbacks if runtime raises unexpected kw errors
                 if "captcha_solver" in str(e) and supports_proxy:
@@ -881,7 +881,7 @@ Bot Status:
                     if supports_captcha:
                         temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
                     else:
-                        temp_client = Client(language="en-US")
+                    temp_client = Client(language="en-US")
                 else:
                     temp_client = Client(language="en-US")
 
