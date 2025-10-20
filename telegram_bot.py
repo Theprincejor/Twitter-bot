@@ -2631,7 +2631,9 @@ async def main():
     bot = TwitterBotTelegram()
 
     try:
-        await bot.start_system()
+        success = await bot.start()
+        if not success:
+            return
 
         # Keep the bot running
         while bot.is_running:
@@ -2639,11 +2641,11 @@ async def main():
 
     except KeyboardInterrupt:
         print("\nShutting down...")
-        await bot.stop_system()
+        await bot.stop()
 
     except Exception as e:
         print(f"Fatal error: {e}")
-        await bot.stop_system()
+        await bot.stop()
 
 
     async def _show_bot_management_menu(self, query):
@@ -2890,27 +2892,6 @@ View detailed system statistics:
 
         except Exception as e:
             self.logger.error(f"Error stopping system: {e}")
-
-
-async def main():
-    """Main function to start the bot"""
-    bot = TwitterBotTelegram()
-
-    try:
-        success = await bot.start()
-        if not success:
-            return
-
-        # Keep running
-        while bot.is_running:
-            await asyncio.sleep(1)
-
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        await bot.stop()
 
 
 if __name__ == "__main__":
