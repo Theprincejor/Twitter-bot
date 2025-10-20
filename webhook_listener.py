@@ -10,43 +10,86 @@ import os
 import signal
 import sys
 import psutil
+import time
+import traceback
 from datetime import datetime
 from flask import Flask, request, jsonify
 from telegram import Bot
 import asyncio
 
-app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("logs/webhook.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
-# Configuration
-TELEGRAM_TOKEN = "8350919686:AAG-VPxwYixmm-wpt0Gih37cx2d9mEoyTj4"
-ADMIN_CHAT_ID = "1724099455"  # Replace with your actual user ID
-PROJECT_PATH = "/root/Twitter-bot"
-WEBHOOK_SECRET = "your-secret-key-here"  # Optional: for security
+# Initialize Flask app
+app = Flask(__name__)
+
+# Load configuration
+try:
+    from config import Config
+    TELEGRAM_TOKEN = Config.TELEGRAM_BOT_TOKEN
+    ADMIN_CHAT_ID = Config.TELEGRAM_CHAT_ID
+    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))  # Use current directory
+    WEBHOOK_SECRET = Config.GITHUB_SECRET if hasattr(Config, 'GITHUB_SECRET') else "your-secret-key-here"
+    
+    logger.info(f"Configuration loaded successfully")
+    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Project path: {PROJECT_PATH}")
+except Exception as e:
+    logger.error(f"Failed to load configuration: {e}")
+    logger.error(traceback.format_exc())
+    sys.exit(1)
 
 
-async def send_telegram_notification(message):
+async def send_telegram_notification(message, level="INFO"):
     """Send notification to Telegram admin"""
     try:
         bot = Bot(token=TELEGRAM_TOKEN)
-        await bot.send_message(chat_id=ADMIN_CHAT_ID, text=message)
+        
+        # Add emoji based on level
+        prefix = "🤖 Twitter Bot"
+        if level == "ERROR":
+            prefix = "❌ Twitter Bot [ERROR]"
+        elif level == "WARNING":
+            prefix = "⚠️ Twitter Bot [WARNING]"
+        elif level == "SUCCESS":
+            prefix = "✅ Twitter Bot [SUCCESS]"
+        
+        # Add timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_message = f"{prefix}\n📅 {timestamp}\n\n{message}"
+        
+        await bot.send_message(chat_id=ADMIN_CHAT_ID, text=formatted_message)
     except Exception as e:
         logger.error(f"Failed to send Telegram notification: {e}")
+        logger.error(traceback.format_exc())
 
 
 def find_bot_process():
     """Find the running bot process"""
-    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-        try:
-            cmdline = " ".join(proc.info["cmdline"])
-            if proc.info["name"] in ["python", "python3"] and (
-                "telegram_bot.py" in cmdline or "main.py" in cmdline
-            ):
-                return proc.info["pid"]
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-    return None
+    try:
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                cmdline = " ".join(proc.info["cmdline"] or [])
+                if proc.info["name"] in ["python", "python3"] and (
+                    "main.py" in cmdline
+                ):
+                    return proc.info["pid"]
+            except (psutil.NoSuchProcess, psutil.AccessDenied, TypeError):
+                continue
+        return None
+    except Exception as e:
+        logger.error(f"Error finding bot process: {e}")
+        logger.error(traceback.format_exc())
+        return None
 
 
 def update_and_restart_bot():
@@ -170,7 +213,7 @@ def update_and_restart_bot():
         time.sleep(2)
 
         # Start new bot process
-        subprocess.Popen(["python3", "telegram_bot.py"], cwd=PROJECT_PATH)
+        subprocess.Popen(["python3", "main.py"], cwd=PROJECT_PATH)
         logger.info("Started new bot process")
 
         return True, "Bot updated and restarted", update_message
