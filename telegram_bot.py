@@ -843,6 +843,14 @@ Bot Status:
                         twikit_captcha_solver = None
 
             proxy_url = getattr(Config, "PROXY_URL", None)
+            # Ensure downstream HTTP clients (httpx inside Twikit) pick up proxy via env
+            if proxy_url:
+                try:
+                    import os
+                    os.environ["HTTP_PROXY"] = proxy_url
+                    os.environ["HTTPS_PROXY"] = proxy_url
+                except Exception:
+                    pass
 
             # Dynamically detect supported Client __init__ parameters
             import inspect as _inspect
