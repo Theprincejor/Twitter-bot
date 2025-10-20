@@ -2841,6 +2841,18 @@ View recent system activity and logs:
 
 async def main():
     """Main entry point"""
+    # Apply proxy configuration globally
+    from config import Config
+    proxy_url = getattr(Config, "PROXY_URL", None)
+    if proxy_url:
+        os.environ["HTTP_PROXY"] = proxy_url
+        os.environ["HTTPS_PROXY"] = proxy_url
+        # Disable SSL verification for proxy
+        os.environ["PYTHONHTTPSVERIFY"] = "0"
+        import ssl
+        ssl._create_default_https_context = ssl._create_unverified_context
+        print(f"🌐 Global proxy configuration applied: {proxy_url}")
+    
     bot = TwitterBotTelegram()
 
     try:
