@@ -844,16 +844,29 @@ Bot Status:
 
             proxy_url = getattr(Config, "PROXY_URL", None)
 
+            # Dynamically detect supported Client __init__ parameters
+            import inspect as _inspect
+            init_sig = _inspect.signature(Client)
+            supports_captcha = "captcha_solver" in init_sig.parameters
+            supports_proxy = "proxy" in init_sig.parameters
+
             try:
-                # Pass captcha_solver and proxy so Twikit can solve challenges and route via proxy
-                temp_client = Client(
-                    language="en-US",
-                    captcha_solver=twikit_captcha_solver,
-                    proxy=proxy_url,
-                )
+                if supports_captcha and supports_proxy:
+                    temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver, proxy=proxy_url)
+                elif supports_captcha and not supports_proxy:
+                    temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
+                elif not supports_captcha and supports_proxy:
+                    temp_client = Client(language="en-US", proxy=proxy_url)
+                else:
+                    temp_client = Client(language="en-US")
             except TypeError as e:
-                if "proxy" in str(e):
-                    # Patch the httpx AsyncClient to ignore proxy parameter
+                # Fallbacks if runtime raises unexpected kw errors
+                if "captcha_solver" in str(e) and supports_proxy:
+                    temp_client = Client(language="en-US", proxy=proxy_url)
+                elif "captcha_solver" in str(e):
+                    temp_client = Client(language="en-US")
+                elif "proxy" in str(e):
+                    # Patch httpx to ignore proxy param in older twikit versions
                     original_init = httpx.AsyncClient.__init__
 
                     def patched_init(self, *args, **kwargs):
@@ -861,13 +874,12 @@ Bot Status:
                         return original_init(self, *args, **kwargs)
 
                     httpx.AsyncClient.__init__ = patched_init
-                    temp_client = Client(
-                        language="en-US",
-                        captcha_solver=twikit_captcha_solver,
-                        proxy=proxy_url,
-                    )
+                    if supports_captcha:
+                        temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
+                    else:
+                        temp_client = Client(language="en-US")
                 else:
-                    raise e
+                    temp_client = Client(language="en-US")
 
             # Optionally pre-seed Cloudflare cookies before login to avoid 403
             try:
