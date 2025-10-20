@@ -1216,38 +1216,34 @@ Bot Status:
             return
 
         try:
-            status = captcha_solver.get_status()
+            # Build live status using a fresh CaptchaSolver instance
+            from captcha_solver import CaptchaSolver
+            from config import Config
+
+            solver = CaptchaSolver()
+
+            captcha_enabled = Config.USE_CAPTCHA_SOLVER
+            captcha_configured = bool(Config.CAPSOLVER_API_KEY)
+            captcha_available = solver.capsolver is not None
+
+            cf_enabled = Config.USE_CLOUDSCRAPER
+            cf_available = getattr(solver, "cloudscraper_session", None) is not None
 
             status_text = "🧩 Captcha Solver Status\n\n"
-
-            # Captcha solver status
-            captcha_status = status["captcha_solver"]
             status_text += "🔧 Captcha Solver:\n"
-            status_text += (
-                f"   Enabled: {'✅' if captcha_status['enabled'] else '❌'}\n"
-            )
-            status_text += (
-                f"   Configured: {'✅' if captcha_status['configured'] else '❌'}\n"
-            )
-            status_text += (
-                f"   Available: {'✅' if captcha_status['available'] else '❌'}\n\n"
-            )
+            status_text += f"   Enabled: {'✅' if captcha_enabled else '❌'}\n"
+            status_text += f"   Configured: {'✅' if captcha_configured else '❌'}\n"
+            status_text += f"   Available: {'✅' if captcha_available else '❌'}\n\n"
 
-            # Cloudscraper status
-            cloudscraper_status = status["cloudscraper"]
             status_text += "🌐 Cloudscraper:\n"
-            status_text += (
-                f"   Enabled: {'✅' if cloudscraper_status['enabled'] else '❌'}\n"
-            )
-            status_text += f"   Available: {'✅' if cloudscraper_status['available'] else '❌'}\n\n"
+            status_text += f"   Enabled: {'✅' if cf_enabled else '❌'}\n"
+            status_text += f"   Available: {'✅' if cf_available else '❌'}\n\n"
 
-            # Recommendations
-            if status["recommendations"]:
-                status_text += "💡 Recommendations:\n"
-                for i, rec in enumerate(status["recommendations"], 1):
-                    status_text += f"   {i}. {rec}\n"
-            else:
-                status_text += "✅ All systems configured properly!"
+            status_text += (
+                "✅ All systems configured properly!"
+                if (captcha_enabled and captcha_configured and (captcha_available or cf_available))
+                else "⚠️ Some components are not available."
+            )
 
             await update.message.reply_text(status_text)
 
