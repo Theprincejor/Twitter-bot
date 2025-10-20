@@ -835,6 +835,38 @@ Bot Status:
                 else:
                     raise e
 
+            # Optionally pre-seed Cloudflare cookies before login to avoid 403
+            try:
+                if Config.USE_CLOUDSCRAPER:
+                    from captcha_solver import CaptchaSolver
+                    solver = CaptchaSolver()
+                    # Try to obtain Cloudflare cookies
+                    result = await solver.get_cloudflare_cookies()
+                    if isinstance(result, dict) and result.get("success") and result.get("cookies"):
+                        # Persist to a temporary cookie file and load into client
+                        cf_cookie_file = os.path.join(
+                            Config.COOKIES_PATH,
+                            f"{bot_id}_cf_presolve.json",
+                        )
+                        os.makedirs(os.path.dirname(cf_cookie_file), exist_ok=True)
+                        with open(cf_cookie_file, "w") as f:
+                            json.dump({
+                                "cookies": result["cookies"],
+                                "user_agent": result.get("user_agent"),
+                                "timestamp": datetime.now().isoformat(),
+                                "source": "cloudflare_bypass_presolve",
+                            }, f, indent=2)
+
+                        # Load into the Twikit client before login
+                        try:
+                            temp_client.load_cookies(cf_cookie_file)
+                        except Exception:
+                            pass
+                        await update.message.reply_text("🌐 Cloudflare cookies preloaded for login attempt")
+            except Exception:
+                # Non-fatal; continue with normal login flow
+                pass
+
             # Add delay to appear more human-like
             import asyncio
             import random
@@ -848,12 +880,12 @@ Bot Status:
 
             # Attempt login with username/password
             if cookies_file_supported:
-                login_result = await temp_client.login(
-                    auth_info_1=username,
-                    auth_info_2=email,  # Optional email
-                    password=password,
-                    cookies_file=cookie_file_path,  # Auto-save cookies to file
-                )
+            login_result = await temp_client.login(
+                auth_info_1=username,
+                auth_info_2=email,  # Optional email
+                password=password,
+                cookies_file=cookie_file_path,  # Auto-save cookies to file
+            )
             else:
                 # Fallback for older twikit versions
                 login_result = await temp_client.login(
