@@ -819,8 +819,32 @@ Bot Status:
             import httpx
 
             # Work around the proxy parameter issue in newer Twikit versions
+            # Prepare optional captcha solver for Twikit if enabled
+            twikit_captcha_solver = None
+            if Config.USE_CAPTCHA_SOLVER and Config.CAPSOLVER_API_KEY:
+                try:
+                    # Twikit's own Capsolver is required for automatic captcha solving within Client
+                    from twikit.twikit_async import Capsolver as TwikitCapsolver
+                except Exception:
+                    try:
+                        # Some versions expose under _captcha
+                        from twikit._captcha.capsolver import Capsolver as TwikitCapsolver
+                    except Exception:
+                        TwikitCapsolver = None
+
+                if TwikitCapsolver is not None:
+                    try:
+                        twikit_captcha_solver = TwikitCapsolver(
+                            api_key=Config.CAPSOLVER_API_KEY,
+                            max_attempts=Config.CAPSOLVER_MAX_ATTEMPTS,
+                            get_result_interval=Config.CAPSOLVER_RESULT_INTERVAL,
+                        )
+                    except Exception:
+                        twikit_captcha_solver = None
+
             try:
-                temp_client = Client(language="en-US")
+                # Pass captcha_solver to Client so Twikit can solve challenges during login
+                temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
             except TypeError as e:
                 if "proxy" in str(e):
                     # Patch the httpx AsyncClient to ignore proxy parameter
@@ -831,7 +855,7 @@ Bot Status:
                         return original_init(self, *args, **kwargs)
 
                     httpx.AsyncClient.__init__ = patched_init
-                    temp_client = Client(language="en-US")
+                    temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
                 else:
                     raise e
 
