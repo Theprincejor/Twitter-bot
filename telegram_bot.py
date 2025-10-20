@@ -794,9 +794,9 @@ Bot Status:
             )
             return
 
-        username = context.args[0]
-        password = context.args[1]
-        email = context.args[2] if len(context.args) > 2 else None
+        username = str(context.args[0])
+        password = str(context.args[1])
+        email = str(context.args[2]) if len(context.args) > 2 else ""
 
         try:
             await update.message.reply_text(
@@ -899,13 +899,15 @@ Bot Status:
                             f"{bot_id}_cf_presolve.json",
                         )
                         os.makedirs(os.path.dirname(cf_cookie_file), exist_ok=True)
+                        # Ensure JSON-serializable content
+                        payload = {
+                            "cookies": dict(result.get("cookies", {})),
+                            "user_agent": str(result.get("user_agent", "")),
+                            "timestamp": datetime.now().isoformat(),
+                            "source": "cloudflare_bypass_presolve",
+                        }
                         with open(cf_cookie_file, "w") as f:
-                            json.dump({
-                                "cookies": result["cookies"],
-                                "user_agent": result.get("user_agent"),
-                                "timestamp": datetime.now().isoformat(),
-                                "source": "cloudflare_bypass_presolve",
-                            }, f, indent=2)
+                            json.dump(payload, f, indent=2)
 
                         # Load into the Twikit client before login
                         try:
@@ -923,10 +925,13 @@ Bot Status:
 
             await asyncio.sleep(random.uniform(2, 5))
 
-            # Check if cookies_file parameter is supported
+            # Check if cookies_file parameter is supported (defensive against older twikit)
             import inspect
-            login_signature = inspect.signature(temp_client.login)
-            cookies_file_supported = "cookies_file" in login_signature.parameters
+            try:
+                login_signature = inspect.signature(temp_client.login)
+                cookies_file_supported = "cookies_file" in login_signature.parameters
+            except Exception:
+                cookies_file_supported = False
 
             # Attempt login with username/password
             if cookies_file_supported:
