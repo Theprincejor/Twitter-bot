@@ -157,7 +157,15 @@ class ProcessWatchdog:
             if result.returncode == 0:
                 return True, "Active"
             else:
-                return False, f"Inactive: {result.stderr.strip()}"
+                # Get more detailed status information
+                status_result = subprocess.run(
+                    ['systemctl', 'status', service_name, '--no-pager', '-l'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                status_info = status_result.stdout.strip() if status_result.returncode == 0 else "No status info"
+                return False, f"Inactive: {result.stderr.strip() if result.stderr.strip() else 'Service not active'}"
                 
         except Exception as e:
             return False, f"Service check error: {e}"
@@ -366,8 +374,25 @@ class ProcessWatchdog:
                             "ERROR"
                         )
                 elif status == "degraded":
-                    # Log warning but don't restart yet
-                    self.logger.warning(f"{process_key} is degraded: {issue['message']}")
+                    # Check if it's a service status issue that can be fixed by restart
+                    if "Service: Inactive" in issue['message'] and "Healthy" in issue['message']:
+                        # This is a service management issue - restart the service
+                        self.logger.warning(f"{process_key} is degraded due to service status: {issue['message']}")
+                        restart_success, restart_message = await self.restart_process(process_key)
+                        
+                        if restart_success:
+                            await self.send_notification(
+                                f"🔄 **Service Recovery: {process_key.title()}**\n\n"
+                                f"Service was inactive but process was healthy.\n"
+                                f"Restarted service to fix management issue.\n"
+                                f"Original issue: {issue['message']}",
+                                "WARNING"
+                            )
+                        else:
+                            self.logger.warning(f"Failed to restart {process_key} service: {restart_message}")
+                    else:
+                        # Log warning but don't restart for other degraded states
+                        self.logger.warning(f"{process_key} is degraded: {issue['message']}")
                     
         except Exception as e:
             self.logger.error(f"Error handling issues: {e}")
