@@ -842,9 +842,15 @@ Bot Status:
                     except Exception:
                         twikit_captcha_solver = None
 
+            proxy_url = getattr(Config, "PROXY_URL", None)
+
             try:
-                # Pass captcha_solver to Client so Twikit can solve challenges during login
-                temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
+                # Pass captcha_solver and proxy so Twikit can solve challenges and route via proxy
+                temp_client = Client(
+                    language="en-US",
+                    captcha_solver=twikit_captcha_solver,
+                    proxy=proxy_url,
+                )
             except TypeError as e:
                 if "proxy" in str(e):
                     # Patch the httpx AsyncClient to ignore proxy parameter
@@ -855,7 +861,11 @@ Bot Status:
                         return original_init(self, *args, **kwargs)
 
                     httpx.AsyncClient.__init__ = patched_init
-                    temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
+                    temp_client = Client(
+                        language="en-US",
+                        captcha_solver=twikit_captcha_solver,
+                        proxy=proxy_url,
+                    )
                 else:
                     raise e
 
