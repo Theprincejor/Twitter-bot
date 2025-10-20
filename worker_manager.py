@@ -400,12 +400,12 @@ class WorkerManager:
     async def _load_workers_from_db(self):
         """Load workers from database"""
         try:
-            bots = await self.db.get_all_bots()
-            for bot in bots:
-                if bot.get('cookie_data'):
+            bots = self.db.get_all_bots()
+            for bot_id, bot_data in bots.items():
+                if bot_data.get('cookie_data'):
                     await self.add_worker(
-                        bot_id=bot['bot_id'],
-                        cookie_data=bot['cookie_data'],
+                        bot_id=bot_id,
+                        cookie_data=bot_data['cookie_data'],
                         auto_start=True
                     )
         except Exception as e:
