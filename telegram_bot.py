@@ -881,7 +881,7 @@ Bot Status:
                     if supports_captcha:
                         temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
                     else:
-                    temp_client = Client(language="en-US")
+                        temp_client = Client(language="en-US")
                 else:
                     temp_client = Client(language="en-US")
 
