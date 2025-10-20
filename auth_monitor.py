@@ -16,6 +16,7 @@ from telegram.error import TelegramError
 
 from config import Config
 from logger import bot_logger
+from database import Database
 
 class TwitterAuthMonitor:
     """Monitors and manages Twitter authentication for all bots"""
@@ -25,6 +26,7 @@ class TwitterAuthMonitor:
         self.logger = bot_logger
         self.project_path = "/root/Twitter-bot"
         self.db_path = os.path.join(self.project_path, "data", "database.json")
+        self.database = Database(self.db_path)
         
         # Monitoring intervals
         self.check_interval = 300  # Check every 5 minutes
@@ -65,11 +67,7 @@ class TwitterAuthMonitor:
     def load_database(self) -> Dict:
         """Load the database"""
         try:
-            if not os.path.exists(self.db_path):
-                return {}
-            
-            with open(self.db_path, 'r') as f:
-                return json.load(f)
+            return self.database.get_all_data()
         except Exception as e:
             self.logger.error(f"Failed to load database: {e}")
             return {}
@@ -77,8 +75,9 @@ class TwitterAuthMonitor:
     def save_database(self, data: Dict):
         """Save the database"""
         try:
-            with open(self.db_path, 'w') as f:
-                json.dump(data, f, indent=2)
+            # Update the database with new data
+            for key, value in data.items():
+                self.database.set_data(key, value)
         except Exception as e:
             self.logger.error(f"Failed to save database: {e}")
     
