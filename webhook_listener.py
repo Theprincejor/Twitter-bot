@@ -36,7 +36,7 @@ app = Flask(__name__)
 try:
     from config import Config
     TELEGRAM_TOKEN = Config.TELEGRAM_TOKEN
-    ADMIN_CHAT_ID = Config.TELEGRAM_CHAT_ID
+    ADMIN_CHAT_ID = Config.TELEGRAM_ADMIN_IDS[0] if Config.TELEGRAM_ADMIN_IDS else None
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))  # Use current directory
     WEBHOOK_SECRET = Config.GITHUB_SECRET if hasattr(Config, 'GITHUB_SECRET') else "your-secret-key-here"
     
