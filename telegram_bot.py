@@ -881,7 +881,7 @@ Bot Status:
                     if supports_captcha:
                         temp_client = Client(language="en-US", captcha_solver=twikit_captcha_solver)
                     else:
-                        temp_client = Client(language="en-US")
+                    temp_client = Client(language="en-US")
                 else:
                     temp_client = Client(language="en-US")
 
@@ -917,12 +917,12 @@ Bot Status:
             # Attempt login with username/password (with detailed error logging)
             try:
                 if cookies_file_supported:
-                    login_result = await temp_client.login(
-                        auth_info_1=username,
-                        auth_info_2=email,  # Optional email
-                        password=password,
-                        cookies_file=cookie_file_path,  # Auto-save cookies to file
-                    )
+            login_result = await temp_client.login(
+                auth_info_1=username,
+                auth_info_2=email,  # Optional email
+                password=password,
+                cookies_file=cookie_file_path,  # Auto-save cookies to file
+            )
                 else:
                     # Fallback for older twikit versions
                     login_result = await temp_client.login(
@@ -2841,18 +2841,6 @@ View recent system activity and logs:
 
 async def main():
     """Main entry point"""
-    # Apply proxy configuration globally
-    from config import Config
-    proxy_url = getattr(Config, "PROXY_URL", None)
-    if proxy_url:
-        os.environ["HTTP_PROXY"] = proxy_url
-        os.environ["HTTPS_PROXY"] = proxy_url
-        # Disable SSL verification for proxy
-        os.environ["PYTHONHTTPSVERIFY"] = "0"
-        import ssl
-        ssl._create_default_https_context = ssl._create_unverified_context
-        print(f"🌐 Global proxy configuration applied: {proxy_url}")
-    
     bot = TwitterBotTelegram()
 
     try:
