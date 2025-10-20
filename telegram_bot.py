@@ -2511,7 +2511,7 @@ View recent system activity and logs:
                 self.logger.warning("⚠️ No proxy configured - Twitter requests may be blocked")
 
             # Load workers from database
-            await self.worker_manager.load_workers_from_db()
+            await self.worker_manager._load_workers_from_db()
 
             # Start scheduler
             await self.scheduler.start()
