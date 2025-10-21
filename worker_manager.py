@@ -82,37 +82,21 @@ class TwitterWorker:
                     # Check if we have a custom SSL certificate for the proxy
                     import os
                     cert_path = Config.PROXY_SSL_CERT
-                    
-                    # Set up custom headers with realistic User-Agent
-                    custom_headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'DNT': '1',
-                        'Connection': 'keep-alive',
-                        'Upgrade-Insecure-Requests': '1'
-                    }
-                    
                     if cert_path and os.path.exists(cert_path):
                         # Use the SSL certificate (e.g., Bright Data certificate)
                         client_kwargs['httpx_kwargs'] = {
-                            'verify': cert_path,
-                            'headers': custom_headers
+                            'verify': cert_path
                         }
                         self.logger.info(f"{self.bot_id}: Using SSL certificate: {cert_path}")
                     else:
                         # Use config setting
                         client_kwargs['httpx_kwargs'] = {
-                            'verify': Config.PROXY_SSL_VERIFY,
-                            'headers': custom_headers
+                            'verify': Config.PROXY_SSL_VERIFY
                         }
                         if not Config.PROXY_SSL_VERIFY:
                             self.logger.info(f"{self.bot_id}: SSL verification disabled for proxy")
                         else:
                             self.logger.info(f"{self.bot_id}: SSL verification enabled for proxy")
-                    
-                    self.logger.info(f"{self.bot_id}: Custom headers configured with browser User-Agent")
                 
             except ImportError:
                 self.logger.warning(f"{self.bot_id}: Could not configure SSL settings")
