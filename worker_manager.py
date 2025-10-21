@@ -120,6 +120,12 @@ class TwitterWorker:
             # IMPORTANT: Wait a moment for cookies to be properly set
             await asyncio.sleep(2)
             
+            # Check what IP we're using (for debugging)
+            if Config.PROXY_URL:
+                self.logger.info(f"{self.bot_id}: Using proxy - requests should come from proxy IP")
+            else:
+                self.logger.info(f"{self.bot_id}: No proxy configured - using VPS IP")
+            
             # Verify authentication by getting user info
             # This uses the proxy automatically since the client was created with it
             try:
