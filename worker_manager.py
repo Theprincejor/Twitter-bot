@@ -325,19 +325,35 @@ class TwitterWorker:
         if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
             return False
-        
+
         try:
-            await self.client.favorite_tweet(tweet_id)
+            # favorite_tweet may return a Response object (not a coroutine) in some Twikit versions
+            result = await self.client.favorite_tweet(tweet_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Liked tweet {tweet_id}")
             return True
+        except TypeError as e:
+            # If it's not a coroutine, call it without await
+            if "can't be used in 'await' expression" in str(e):
+                try:
+                    result = self.client.favorite_tweet(tweet_id)
+                    self.last_action_time = datetime.now()
+                    self.logger.info(f"{self.bot_id}: Liked tweet {tweet_id}")
+                    return True
+                except Exception as e2:
+                    self.logger.error(f"{self.bot_id}: Failed to like tweet {tweet_id}: {e2}")
+                    if "rate limit" in str(e2).lower():
+                        self.mark_rate_limited()
+                    return False
+            else:
+                raise
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to like tweet {tweet_id}: {e}")
-            
+
             # Handle rate limiting
             if "rate limit" in str(e).lower():
                 self.mark_rate_limited()
-            
+
             return False
 
     async def retweet_tweet(self, tweet_id: str) -> bool:
@@ -345,19 +361,35 @@ class TwitterWorker:
         if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
             return False
-        
+
         try:
-            await self.client.retweet(tweet_id)
+            # retweet may return a Response object (not a coroutine) in some Twikit versions
+            result = await self.client.retweet(tweet_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
             return True
+        except TypeError as e:
+            # If it's not a coroutine, call it without await
+            if "can't be used in 'await' expression" in str(e):
+                try:
+                    result = self.client.retweet(tweet_id)
+                    self.last_action_time = datetime.now()
+                    self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
+                    return True
+                except Exception as e2:
+                    self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e2}")
+                    if "rate limit" in str(e2).lower():
+                        self.mark_rate_limited()
+                    return False
+            else:
+                raise
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e}")
-            
+
             # Handle rate limiting
             if "rate limit" in str(e).lower():
                 self.mark_rate_limited()
-            
+
             return False
 
     async def comment_on_tweet(self, tweet_id: str, text: str) -> bool:
@@ -541,9 +573,23 @@ class WorkerManager:
         try:
             all_bots = self.db.get_all_bots()
             
+            # Ensure all_bots is a dictionary
+            if not isinstance(all_bots, dict):
+                self.logger.error(f"get_all_bots returned non-dict type: {type(all_bots)}")
+                return
+            
             for bot_id, bot_info in all_bots.items():
+                if not isinstance(bot_info, dict):
+                    self.logger.error(f"Bot info for {bot_id} is not a dict: {type(bot_info)}")
+                    continue
+                    
                 if bot_info.get("status") == "active":
                     cookie_data = bot_info.get("cookies", {})
+                    
+                    # Ensure cookie_data is a dictionary
+                    if not isinstance(cookie_data, dict):
+                        self.logger.error(f"Cookie data for {bot_id} is not a dict: {type(cookie_data)}")
+                        continue
                     
                     # Create and initialize worker
                     worker = TwitterWorker(bot_id, cookie_data, self.db)
