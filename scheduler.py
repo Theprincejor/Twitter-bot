@@ -470,14 +470,15 @@ class TaskScheduler:
                 await asyncio.sleep(60)
 
     async def _resume_rate_limited_workers(self):
-        """Resume workers that are no longer rate limited"""
+        """Resume workers that are no longer rate limited - DISABLED"""
         while self.is_running:
             try:
-                await self.worker_manager.resume_rate_limited_workers()
-                await asyncio.sleep(60)  # Check every minute
+                # Method disabled - worker_manager.resume_rate_limited_workers() not available
+                # TODO: Re-enable when method is properly implemented
+                await asyncio.sleep(60)  # Just sleep
 
             except Exception as e:
-                self.logger.error(f"Error resuming rate limited workers: {e}")
+                self.logger.error(f"Error in resume task: {e}")
                 await asyncio.sleep(60)
 
     async def get_queue_status(self) -> Dict[str, Any]:
