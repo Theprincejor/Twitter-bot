@@ -435,10 +435,19 @@ class TwitterWorker:
             self.logger.debug(f"{self.bot_id}: Successfully fetched tweet {tweet_id}")
 
             # Now retweet the tweet object
-            result = await tweet.retweet()
-            self.last_action_time = datetime.now()
-            self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
-            return True
+            try:
+                result = await tweet.retweet()
+                self.last_action_time = datetime.now()
+                self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully")
+                return True
+            except Exception as retweet_error:
+                # Check if it's a 404 error (already retweeted)
+                error_str = str(retweet_error)
+                if "404" in error_str or "already" in error_str.lower():
+                    self.logger.info(f"{self.bot_id}: Tweet {tweet_id} already retweeted (404)")
+                    return True  # Consider it a success if already retweeted
+                else:
+                    raise  # Re-raise other errors
 
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e}")
