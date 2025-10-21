@@ -431,33 +431,38 @@ class TwitterWorker:
         try:
             # Try using the direct client.retweet() method instead of fetching tweet first
             # The fetch-then-retweet approach has issues with certain tweet formats
+            await self.client.retweet(tweet_id)
+            self.last_action_time = datetime.now()
+            self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully")
+            return True
+
+        except TypeError:
+            # If it's not async, try without await
             try:
-                await self.client.retweet(tweet_id)
-                self.last_action_time = datetime.now()
-                self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully")
-                return True
-            except TypeError:
-                # If it's not async, try without await
                 self.client.retweet(tweet_id)
                 self.last_action_time = datetime.now()
                 self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully (sync)")
                 return True
-            except Exception as direct_error:
-                # If direct method fails with 404, tweet might already be retweeted
-                error_str = str(direct_error)
-                if "404" in error_str:
-                    self.logger.info(f"{self.bot_id}: Tweet {tweet_id} already retweeted or not found")
-                    return True  # Consider it success if already retweeted
-                else:
-                    # If direct method fails for other reasons, log and fail
-                    self.logger.warning(f"{self.bot_id}: Direct retweet failed: {direct_error}")
-                    raise
+            except Exception as sync_error:
+                # Check for 404 in sync method too
+                if "404" in str(sync_error):
+                    self.logger.info(f"{self.bot_id}: Tweet {tweet_id} already retweeted (404)")
+                    return True
+                raise
 
         except Exception as e:
+            error_str = str(e)
+
+            # If it's a 404 error, tweet might already be retweeted - consider it success
+            if "404" in error_str:
+                self.logger.info(f"{self.bot_id}: Tweet {tweet_id} already retweeted (404)")
+                return True
+
+            # Log actual errors
             self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e}")
 
             # Handle rate limiting
-            if "rate limit" in str(e).lower():
+            if "rate limit" in error_str.lower():
                 self.mark_rate_limited()
 
             return False
