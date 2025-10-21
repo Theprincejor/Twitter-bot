@@ -75,13 +75,24 @@ class TwitterWorker:
                 
                 # Check if httpx_kwargs parameter is supported
                 if 'httpx_kwargs' in params:
-                    client_kwargs['httpx_kwargs'] = {
-                        'verify': Config.PROXY_SSL_VERIFY  # SSL verification based on config
-                    }
-                    if not Config.PROXY_SSL_VERIFY:
-                        self.logger.info(f"{self.bot_id}: SSL verification disabled for proxy")
+                    # Check if we have a custom SSL certificate for the proxy
+                    import os
+                    cert_path = Config.PROXY_SSL_CERT
+                    if cert_path and os.path.exists(cert_path):
+                        # Use the SSL certificate (e.g., Bright Data certificate)
+                        client_kwargs['httpx_kwargs'] = {
+                            'verify': cert_path
+                        }
+                        self.logger.info(f"{self.bot_id}: Using SSL certificate: {cert_path}")
                     else:
-                        self.logger.info(f"{self.bot_id}: SSL verification enabled for proxy")
+                        # Use config setting
+                        client_kwargs['httpx_kwargs'] = {
+                            'verify': Config.PROXY_SSL_VERIFY
+                        }
+                        if not Config.PROXY_SSL_VERIFY:
+                            self.logger.info(f"{self.bot_id}: SSL verification disabled for proxy")
+                        else:
+                            self.logger.info(f"{self.bot_id}: SSL verification enabled for proxy")
                 
             except ImportError:
                 self.logger.warning(f"{self.bot_id}: Could not configure SSL settings")
