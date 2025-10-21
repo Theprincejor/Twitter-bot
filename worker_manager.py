@@ -526,6 +526,10 @@ class WorkerManager:
     def get_all_workers(self) -> List[TwitterWorker]:
         """Get all workers"""
         return list(self.workers.values())
+    
+    def get_active_workers(self) -> List[TwitterWorker]:
+        """Get all active (logged in) workers"""
+        return [worker for worker in self.workers.values() if worker.is_logged_in]
 
     def get_available_worker(self) -> Optional[TwitterWorker]:
         """Get an available worker (not rate limited, no captcha required)"""

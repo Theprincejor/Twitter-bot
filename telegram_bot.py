@@ -300,7 +300,7 @@ Choose an action from the menu below:
 
         try:
             # Get worker status
-            worker_status = await self.worker_manager.get_worker_status()
+            worker_status = self.worker_manager.get_all_worker_statuses()
 
             # Get queue status
             queue_status = await self.scheduler.get_queue_status()
@@ -1008,7 +1008,7 @@ Bot Status:
 
         try:
             workers = self.worker_manager.get_all_workers()
-            worker_status = await self.worker_manager.get_worker_status()
+            worker_status = self.worker_manager.get_all_worker_statuses()
 
             if not workers:
                 await update.message.reply_text(
