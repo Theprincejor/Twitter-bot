@@ -151,12 +151,15 @@ class TwitterWorker:
                 self.twitter_user_id = None
                 self.twitter_username = None
                 
-                # Try to extract from twid cookie (format: u=1234567890)
+                # Try to extract from twid cookie (format: u=1234567890 or u%3D1234567890)
                 if 'twid' in self.cookie_data:
+                    import urllib.parse
                     twid = self.cookie_data['twid']
-                    if 'u=' in twid:
+                    # URL decode the twid value (u%3D becomes u=)
+                    twid_decoded = urllib.parse.unquote(twid)
+                    if 'u=' in twid_decoded:
                         # Extract user ID from twid cookie
-                        self.twitter_user_id = twid.split('u=')[1].split(';')[0].split('|')[0]
+                        self.twitter_user_id = twid_decoded.split('u=')[1].split(';')[0].split('|')[0]
                         self.logger.info(f"{self.bot_id}: Extracted Twitter user ID from cookies: {self.twitter_user_id}")
                 
                 # If we couldn't get it from cookies, we'll fetch it on first action
