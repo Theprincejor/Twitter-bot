@@ -20,7 +20,7 @@ class TwitterWorker:
         self.cookie_data = cookie_data
         self.db = db
         self.logger = bot_logger
-
+        
         # Initialize client with proxy support
         self.client = self._create_client_with_proxy()
         
@@ -180,15 +180,15 @@ class TwitterWorker:
                 self.logger.warning(f"{self.bot_id}: Error extracting user info from cookies: {e}")
             
             # Mark as logged in - real verification happens when performing actions
-                    self.is_logged_in = True
+            self.is_logged_in = True
             
             try:
                 # Log available action methods for debugging
                 action_methods = [m for m in dir(self.client) if m.startswith(('create_', 'like_', 'retweet', 'quote', 'follow'))]
                 self.logger.info(f"{self.bot_id}: Available action methods: {len(action_methods)} found")
-
-                    return True
-
+                
+                return True
+                    
             except Exception as e:
                 error_msg = str(e)
                 self.logger.warning(f"{self.bot_id}: Method check warning: {error_msg}")
@@ -209,7 +209,7 @@ class TwitterWorker:
                     self.mark_rate_limited()
                 
                 return False
-
+            
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Initialization failed: {e}")
             return False
@@ -234,19 +234,19 @@ class TwitterWorker:
         # Check if rate limited
         if self.rate_limited_until:
             if datetime.now() < self.rate_limited_until:
-            return False
+                return False
             else:
                 # Rate limit expired
                 self.rate_limited_until = None
         
         # Check if captcha required
         if self.captcha_required:
-                return False
-
+            return False
+        
         # Check if logged in
         if not self.is_logged_in:
-                return False
-
+            return False
+        
         return True
 
     def mark_rate_limited(self, duration_minutes: int = None):
@@ -271,10 +271,10 @@ class TwitterWorker:
 
     async def like_tweet(self, tweet_id: str) -> bool:
         """Like a tweet"""
-            if not self._can_perform_action():
+        if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
-                return False
-
+            return False
+        
         try:
             await self.client.favorite_tweet(tweet_id)
             self.last_action_time = datetime.now()
@@ -287,14 +287,14 @@ class TwitterWorker:
             if "rate limit" in str(e).lower():
                 self.mark_rate_limited()
             
-                    return False
+            return False
 
     async def retweet_tweet(self, tweet_id: str) -> bool:
         """Retweet a tweet"""
         if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
-                        return False
-
+            return False
+        
         try:
             await self.client.retweet(tweet_id)
             self.last_action_time = datetime.now()
@@ -313,8 +313,8 @@ class TwitterWorker:
         """Comment on a tweet"""
         if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
-                            return False
-
+            return False
+        
         try:
             await self.client.create_tweet(text=text, reply_to=tweet_id)
             self.last_action_time = datetime.now()
@@ -327,40 +327,40 @@ class TwitterWorker:
             if "rate limit" in str(e).lower():
                 self.mark_rate_limited()
             
-                return False
+            return False
 
     async def quote_tweet(self, tweet_id: str, text: str) -> bool:
         """Quote tweet"""
-            if not self._can_perform_action():
+        if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
-                return False
-
+            return False
+        
         try:
             await self.client.create_tweet(text=text, quote=tweet_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Quoted tweet {tweet_id}")
-                return True
+            return True
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to quote tweet {tweet_id}: {e}")
-
+            
             # Handle rate limiting
             if "rate limit" in str(e).lower():
                 self.mark_rate_limited()
-
+            
             return False
 
     async def follow_user(self, user_id: str) -> bool:
         """Follow a user"""
-            if not self._can_perform_action():
+        if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
-                return False
-
+            return False
+        
         try:
             # follow_user returns a Response object, not a coroutine
             result = await self.client.follow_user(user_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Followed user {user_id}")
-                return True
+            return True
         except TypeError as e:
             # If it's not a coroutine, call it without await
             if "can't be used in 'await' expression" in str(e):
@@ -373,7 +373,7 @@ class TwitterWorker:
                     self.logger.error(f"{self.bot_id}: Failed to follow user {user_id}: {e2}")
                     if "rate limit" in str(e2).lower():
                         self.mark_rate_limited()
-            return False
+                    return False
             else:
                 raise
         except Exception as e:
@@ -387,22 +387,22 @@ class TwitterWorker:
 
     async def unfollow_user(self, user_id: str) -> bool:
         """Unfollow a user"""
-            if not self._can_perform_action():
+        if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
-                return False
-
+            return False
+        
         try:
             await self.client.unfollow_user(user_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Unfollowed user {user_id}")
-                return True
+            return True
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to unfollow user {user_id}: {e}")
-
+            
             # Handle rate limiting
             if "rate limit" in str(e).lower():
                 self.mark_rate_limited()
-
+            
             return False
 
     def get_status(self) -> Dict[str, Any]:
@@ -428,7 +428,7 @@ class TwitterWorker:
             self.twitter_user_id = await self.client.user_id()
             self.logger.info(f"{self.bot_id}: Fetched Twitter user ID: {self.twitter_user_id}")
             return self.twitter_user_id
-                    except Exception as e:
+        except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to fetch user ID: {e}")
             return None
 
@@ -439,7 +439,7 @@ class TwitterWorker:
             if hasattr(self.client, 'close'):
                 await self.client.close()
             self.logger.info(f"{self.bot_id}: Worker cleaned up")
-            except Exception as e:
+        except Exception as e:
             self.logger.error(f"{self.bot_id}: Error during cleanup: {e}")
 
 
@@ -481,7 +481,7 @@ class WorkerManager:
             self.workers.clear()
             
             self.logger.info("Worker Manager stopped")
-
+            
         except Exception as e:
             self.logger.error(f"Error stopping Worker Manager: {e}")
 
@@ -500,12 +500,12 @@ class WorkerManager:
                     if await worker.initialize():
                         self.workers[bot_id] = worker
                         self.logger.info(f"Loaded worker: {bot_id}")
-                        else:
+                    else:
                         self.logger.error(f"Failed to initialize worker: {bot_id}")
-
+            
             self.logger.info(f"Loaded {len(self.workers)} workers from database")
-
-                    except Exception as e:
+            
+        except Exception as e:
             self.logger.error(f"Failed to load workers from database: {e}")
 
     async def add_worker(self, bot_id: str, cookie_data: Dict[str, Any]) -> bool:
@@ -517,16 +517,16 @@ class WorkerManager:
             
             if not validation['valid']:
                 self.logger.error(f"Cookie validation failed for {bot_id}: {validation['errors']}")
-            return False
-
+                return False
+            
             # Add to database first
             if not self.db.add_bot(bot_id, cookie_data):
                 self.logger.error(f"Failed to add {bot_id} to database")
-            return False
-
+                return False
+            
             # Create and initialize worker
             worker = TwitterWorker(bot_id, cookie_data, self.db)
-
+            
             if await worker.initialize():
                 self.workers[bot_id] = worker
                 self.logger.info(f"Worker {bot_id} added successfully")
@@ -534,7 +534,7 @@ class WorkerManager:
             else:
                 self.logger.error(f"Failed to initialize worker {bot_id}")
                 return False
-
+                
         except Exception as e:
             self.logger.error(f"Failed to add worker {bot_id}: {e}")
             return False
@@ -544,21 +544,21 @@ class WorkerManager:
         try:
             if bot_id not in self.workers:
                 self.logger.warning(f"Worker {bot_id} not found")
-            return False
-
+                return False
+            
             # Cleanup worker
             worker = self.workers[bot_id]
             await worker.cleanup()
             
             # Remove from workers dict
-                del self.workers[bot_id]
+            del self.workers[bot_id]
             
             # Remove from database
             self.db.remove_bot(bot_id)
             
             self.logger.info(f"Worker {bot_id} removed successfully")
-                return True
-
+            return True
+            
         except Exception as e:
             self.logger.error(f"Failed to remove worker {bot_id}: {e}")
             return False
@@ -569,7 +569,7 @@ class WorkerManager:
             if bot_id not in self.workers:
                 self.logger.warning(f"Worker {bot_id} not found")
                 return False
-
+            
             worker = self.workers[bot_id]
             
             # Reinitialize worker
@@ -577,10 +577,10 @@ class WorkerManager:
             if not success:
                 self.logger.error(f"Failed to restart worker {bot_id}")
                 return False
-
+            
             self.logger.info(f"Worker {bot_id} restarted successfully")
-                return True
-
+            return True
+            
         except Exception as e:
             self.logger.error(f"Failed to restart worker {bot_id}: {e}")
             return False
@@ -592,7 +592,7 @@ class WorkerManager:
     def get_all_workers(self) -> List[TwitterWorker]:
         """Get all workers"""
         return list(self.workers.values())
-
+    
     def get_active_workers(self) -> List[TwitterWorker]:
         """Get all active (logged in) workers"""
         return [worker for worker in self.workers.values() if worker.is_logged_in]
@@ -692,7 +692,7 @@ class WorkerManager:
                             self.logger.info(f"✅ {new_bot_id} followed {worker.bot_id} (ID: {other_user_id})")
                             follow_count += 1
                             await asyncio.sleep(2)  # Rate limiting between follows
-            except Exception as e:
+                        except Exception as e:
                             error_msg = f"Error: {new_bot_id} following {worker.bot_id}: {e}"
                             self.logger.error(error_msg)
                             errors.append(error_msg)
@@ -733,7 +733,7 @@ class WorkerManager:
                                 self.logger.info(f"✅ {worker1.bot_id} followed {worker2.bot_id}")
                                 follow_count += 1
                                 await asyncio.sleep(2)
-        except Exception as e:
+                            except Exception as e:
                                 error_msg = f"Error: {worker1.bot_id} following {worker2.bot_id}: {e}"
                                 self.logger.error(error_msg)
                                 errors.append(error_msg)
@@ -757,11 +757,11 @@ class WorkerManager:
             if errors:
                 self.logger.warning(f"Mutual following completed with {len(errors)} errors")
                 self.logger.info(f"✅ Successful follows: {follow_count}, ❌ Errors: {len(errors)}")
-                    else:
+            else:
                 self.logger.info(f"✅ Mutual following sync completed successfully - {follow_count} follow actions executed!")
             
             return True
-
+            
         except Exception as e:
             self.logger.error(f"Error syncing mutual following: {e}")
             return False
