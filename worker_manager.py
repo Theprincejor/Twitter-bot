@@ -78,29 +78,61 @@ class TwitterWorker:
     async def initialize(self) -> bool:
         """Initialize worker with cookie-based authentication"""
         try:
-            self.logger.info(f"{self.bot_id}: Initializing worker...")
+            self.logger.info(f"{self.bot_id}: Initializing worker with proxy support...")
             
             # Set cookies directly
             if isinstance(self.cookie_data, dict):
                 self.client.set_cookies(self.cookie_data)
                 self.logger.info(f"{self.bot_id}: Cookies set successfully")
+                
+                # Log cookie details (sanitized)
+                from cookie_processor import CookieProcessor
+                cookie_report = CookieProcessor.create_cookie_report(self.cookie_data)
+                self.logger.debug(f"{self.bot_id}: {cookie_report}")
             else:
                 self.logger.error(f"{self.bot_id}: Invalid cookie data format")
                 return False
             
+            # IMPORTANT: Wait a moment for cookies to be properly set
+            await asyncio.sleep(2)
+            
             # Verify authentication by getting user info
+            # This uses the proxy automatically since the client was created with it
             try:
+                self.logger.info(f"{self.bot_id}: Verifying authentication through proxy...")
+                
+                # Try to get current user info
                 user = await self.client.user()
+                
                 if user:
                     username = getattr(user, 'screen_name', getattr(user, 'username', 'Unknown'))
-                    self.logger.info(f"{self.bot_id}: Authenticated as @{username}")
+                    user_id = getattr(user, 'id', 'Unknown')
+                    self.logger.info(f"{self.bot_id}: ✅ Authenticated as @{username} (ID: {user_id})")
                     self.is_logged_in = True
                     return True
                 else:
-                    self.logger.error(f"{self.bot_id}: Failed to verify authentication")
+                    self.logger.error(f"{self.bot_id}: Failed to get user info")
                     return False
+                    
             except Exception as e:
-                self.logger.error(f"{self.bot_id}: Authentication verification failed: {e}")
+                error_msg = str(e)
+                self.logger.error(f"{self.bot_id}: Authentication verification failed: {error_msg}")
+                
+                # Check for specific errors
+                if "401" in error_msg or "Could not authenticate" in error_msg:
+                    self.logger.error(f"{self.bot_id}: ❌ Authentication rejected by Twitter")
+                    self.logger.error(f"{self.bot_id}: Possible causes:")
+                    self.logger.error(f"{self.bot_id}:   1. Cookies are expired - export fresh cookies")
+                    self.logger.error(f"{self.bot_id}:   2. Cookies were exported from different IP than proxy")
+                    self.logger.error(f"{self.bot_id}:   3. Twitter detected automated behavior")
+                    self.logger.error(f"{self.bot_id}:   4. Account may be suspended or locked")
+                elif "403" in error_msg or "Forbidden" in error_msg:
+                    self.logger.error(f"{self.bot_id}: ❌ Access forbidden - possible Cloudflare block")
+                    self.logger.error(f"{self.bot_id}: Verify proxy is working: {Config.PROXY_URL[:50]}...")
+                elif "429" in error_msg or "rate limit" in error_msg.lower():
+                    self.logger.error(f"{self.bot_id}: ❌ Rate limited")
+                    self.mark_rate_limited()
+                
                 return False
             
         except Exception as e:
@@ -249,7 +281,7 @@ class TwitterWorker:
             return False
         
         try:
-            await self.client.follow(user_id)
+            await self.client.follow_user(user_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Followed user {user_id}")
             return True
@@ -269,7 +301,7 @@ class TwitterWorker:
             return False
         
         try:
-            await self.client.unfollow(user_id)
+            await self.client.unfollow_user(user_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Unfollowed user {user_id}")
             return True
@@ -282,55 +314,17 @@ class TwitterWorker:
             
             return False
 
-    async def get_user_info(self, username: str) -> Optional[Dict[str, Any]]:
-        """Get user information"""
-        try:
-            user = await self.client.get_user_by_screen_name(username)
-            if user:
-                return {
-                    'id': getattr(user, 'id', None),
-                    'username': getattr(user, 'screen_name', None),
-                    'name': getattr(user, 'name', None),
-                    'followers_count': getattr(user, 'followers_count', 0),
-                    'following_count': getattr(user, 'friends_count', 0),
-                    'tweets_count': getattr(user, 'statuses_count', 0),
-                    'verified': getattr(user, 'verified', False),
-                    'description': getattr(user, 'description', ''),
-                }
-            return None
-        except Exception as e:
-            self.logger.error(f"{self.bot_id}: Failed to get user info for {username}: {e}")
-            return None
-
-    async def get_tweet_info(self, tweet_id: str) -> Optional[Dict[str, Any]]:
-        """Get tweet information"""
-        try:
-            tweet = await self.client.get_tweet_by_id(tweet_id)
-            if tweet:
-                return {
-                    'id': getattr(tweet, 'id', None),
-                    'text': getattr(tweet, 'text', ''),
-                    'author_id': getattr(tweet, 'user_id', None),
-                    'author_username': getattr(tweet, 'user', {}).get('screen_name', '') if hasattr(tweet, 'user') else '',
-                    'created_at': getattr(tweet, 'created_at', None),
-                    'retweet_count': getattr(tweet, 'retweet_count', 0),
-                    'favorite_count': getattr(tweet, 'favorite_count', 0),
-                    'reply_count': getattr(tweet, 'reply_count', 0),
-                }
-            return None
-        except Exception as e:
-            self.logger.error(f"{self.bot_id}: Failed to get tweet info for {tweet_id}: {e}")
-            return None
-
     def get_status(self) -> Dict[str, Any]:
         """Get worker status"""
         return {
-            'bot_id': self.bot_id,
-            'is_logged_in': self.is_logged_in,
-            'rate_limited_until': self.rate_limited_until.isoformat() if self.rate_limited_until else None,
-            'captcha_required': self.captcha_required,
-            'last_action_time': self.last_action_time.isoformat() if self.last_action_time else None,
-            'proxy_configured': bool(Config.PROXY_URL),
+            "bot_id": self.bot_id,
+            "is_logged_in": self.is_logged_in,
+            "can_perform_action": self._can_perform_action(),
+            "rate_limited_until": self.rate_limited_until.isoformat() if self.rate_limited_until else None,
+            "captcha_required": self.captcha_required,
+            "last_action_time": self.last_action_time.isoformat() if self.last_action_time else None,
+            "status": "active" if self._can_perform_action() else "limited",
+            "proxy_configured": bool(Config.PROXY_URL),
         }
 
     async def cleanup(self):
@@ -345,14 +339,13 @@ class TwitterWorker:
 
 
 class WorkerManager:
-    """Manager for all Twitter workers with proxy support"""
+    """Manages multiple Twitter bot workers with proxy support"""
 
     def __init__(self, db: Database):
         self.db = db
-        self.logger = bot_logger
         self.workers: Dict[str, TwitterWorker] = {}
+        self.logger = bot_logger
         self.is_running = False
-        self.worker_tasks: Dict[str, asyncio.Task] = {}
 
     async def start(self):
         """Start the worker manager"""
@@ -376,21 +369,11 @@ class WorkerManager:
             self.logger.info("Stopping Worker Manager...")
             self.is_running = False
             
-            # Stop all worker tasks
-            for task in self.worker_tasks.values():
-                if not task.done():
-                    task.cancel()
-            
-            # Wait for tasks to complete
-            if self.worker_tasks:
-                await asyncio.gather(*self.worker_tasks.values(), return_exceptions=True)
-            
             # Cleanup all workers
             for worker in self.workers.values():
                 await worker.cleanup()
             
             self.workers.clear()
-            self.worker_tasks.clear()
             
             self.logger.info("Worker Manager stopped")
             
@@ -398,45 +381,55 @@ class WorkerManager:
             self.logger.error(f"Error stopping Worker Manager: {e}")
 
     async def _load_workers_from_db(self):
-        """Load workers from database"""
+        """Load all workers from database"""
         try:
-            bots = self.db.get_all_bots()
-            for bot_id, bot_data in bots.items():
-                if bot_data.get('cookie_data'):
-                    await self.add_worker(
-                        bot_id=bot_id,
-                        cookie_data=bot_data['cookie_data'],
-                        auto_start=True
-                    )
+            all_bots = self.db.get_all_bots()
+            
+            for bot_id, bot_info in all_bots.items():
+                if bot_info.get("status") == "active":
+                    cookie_data = bot_info.get("cookie_data", {})
+                    
+                    # Create and initialize worker
+                    worker = TwitterWorker(bot_id, cookie_data, self.db)
+                    
+                    if await worker.initialize():
+                        self.workers[bot_id] = worker
+                        self.logger.info(f"Loaded worker: {bot_id}")
+                    else:
+                        self.logger.error(f"Failed to initialize worker: {bot_id}")
+            
+            self.logger.info(f"Loaded {len(self.workers)} workers from database")
+            
         except Exception as e:
             self.logger.error(f"Failed to load workers from database: {e}")
 
-    async def add_worker(self, bot_id: str, cookie_data: Dict[str, Any], auto_start: bool = True) -> bool:
+    async def add_worker(self, bot_id: str, cookie_data: Dict[str, Any]) -> bool:
         """Add a new worker"""
         try:
-            if bot_id in self.workers:
-                self.logger.warning(f"Worker {bot_id} already exists")
+            # Validate cookies first
+            from cookie_processor import CookieProcessor
+            validation = CookieProcessor.validate_cookies(cookie_data)
+            
+            if not validation['valid']:
+                self.logger.error(f"Cookie validation failed for {bot_id}: {validation['errors']}")
                 return False
             
-            # Create worker
+            # Add to database first
+            if not self.db.save_bot(bot_id, cookie_data):
+                self.logger.error(f"Failed to add {bot_id} to database")
+                return False
+            
+            # Create and initialize worker
             worker = TwitterWorker(bot_id, cookie_data, self.db)
             
-            # Initialize worker
-            if auto_start:
-                success = await worker.initialize()
-                if not success:
-                    self.logger.error(f"Failed to initialize worker {bot_id}")
-                    return False
-            
-            # Add to workers dict
-            self.workers[bot_id] = worker
-            
-            # Save to database
-            await self.db.save_bot(bot_id, cookie_data)
-            
-            self.logger.info(f"Worker {bot_id} added successfully")
-            return True
-            
+            if await worker.initialize():
+                self.workers[bot_id] = worker
+                self.logger.info(f"Worker {bot_id} added successfully")
+                return True
+            else:
+                self.logger.error(f"Failed to initialize worker {bot_id}")
+                return False
+                
         except Exception as e:
             self.logger.error(f"Failed to add worker {bot_id}: {e}")
             return False
@@ -448,13 +441,6 @@ class WorkerManager:
                 self.logger.warning(f"Worker {bot_id} not found")
                 return False
             
-            # Stop worker task if running
-            if bot_id in self.worker_tasks:
-                task = self.worker_tasks[bot_id]
-                if not task.done():
-                    task.cancel()
-                del self.worker_tasks[bot_id]
-            
             # Cleanup worker
             worker = self.workers[bot_id]
             await worker.cleanup()
@@ -463,7 +449,7 @@ class WorkerManager:
             del self.workers[bot_id]
             
             # Remove from database
-            await self.db.delete_bot(bot_id)
+            self.db.delete_bot(bot_id)
             
             self.logger.info(f"Worker {bot_id} removed successfully")
             return True
@@ -520,97 +506,23 @@ class WorkerManager:
         """Get status of all workers"""
         return {bot_id: worker.get_status() for bot_id, worker in self.workers.items()}
 
-    async def execute_task(self, task_type: str, task_data: Dict[str, Any]) -> bool:
-        """Execute a task using an available worker"""
-        try:
-            # Get available worker
-            worker = self.get_available_worker()
-            if not worker:
-                self.logger.warning("No available workers for task execution")
-                return False
-            
-            # Execute task based on type
-            if task_type == "like":
-                return await worker.like_tweet(task_data.get('tweet_id'))
-            elif task_type == "retweet":
-                return await worker.retweet_tweet(task_data.get('tweet_id'))
-            elif task_type == "comment":
-                return await worker.comment_on_tweet(
-                    task_data.get('tweet_id'), 
-                    task_data.get('text', '')
-                )
-            elif task_type == "quote":
-                return await worker.quote_tweet(
-                    task_data.get('tweet_id'), 
-                    task_data.get('text', '')
-                )
-            elif task_type == "follow":
-                return await worker.follow_user(task_data.get('user_id'))
-            elif task_type == "unfollow":
-                return await worker.unfollow_user(task_data.get('user_id'))
-            else:
-                self.logger.error(f"Unknown task type: {task_type}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Failed to execute task {task_type}: {e}")
-            return False
-
     def get_statistics(self) -> Dict[str, Any]:
         """Get worker manager statistics"""
         total_workers = len(self.workers)
         active_workers = sum(1 for w in self.workers.values() if w.is_logged_in)
+        available_workers = sum(1 for w in self.workers.values() if w._can_perform_action())
         rate_limited_workers = sum(1 for w in self.workers.values() if w.rate_limited_until)
         captcha_required_workers = sum(1 for w in self.workers.values() if w.captcha_required)
         
         return {
             'total_workers': total_workers,
             'active_workers': active_workers,
+            'available_workers': available_workers,
             'rate_limited_workers': rate_limited_workers,
             'captcha_required_workers': captcha_required_workers,
             'proxy_configured': bool(Config.PROXY_URL),
             'is_running': self.is_running,
         }
-
-    async def health_check(self) -> Dict[str, Any]:
-        """Perform health check on all workers"""
-        health_status = {
-            'healthy_workers': 0,
-            'unhealthy_workers': 0,
-            'worker_details': {}
-        }
-        
-        for bot_id, worker in self.workers.items():
-            try:
-                # Check if worker can perform actions
-                can_act = worker._can_perform_action()
-                
-                # Try to get user info to verify connection
-                user_info = await worker.get_user_info('twitter')  # Simple test
-                
-                worker_healthy = can_act and worker.is_logged_in
-                
-                if worker_healthy:
-                    health_status['healthy_workers'] += 1
-                else:
-                    health_status['unhealthy_workers'] += 1
-                
-                health_status['worker_details'][bot_id] = {
-                    'healthy': worker_healthy,
-                    'can_perform_action': can_act,
-                    'is_logged_in': worker.is_logged_in,
-                    'rate_limited': bool(worker.rate_limited_until),
-                    'captcha_required': worker.captcha_required,
-                }
-                
-            except Exception as e:
-                health_status['unhealthy_workers'] += 1
-                health_status['worker_details'][bot_id] = {
-                    'healthy': False,
-                    'error': str(e)
-                }
-        
-        return health_status
 
     async def resume_rate_limited_workers(self):
         """Resume workers that are no longer rate limited"""

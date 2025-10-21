@@ -1,282 +1,385 @@
 """
-Cookie processor for Twitter Bot System
-Processes browser cookie exports to Twikit-compatible format
+Cookie Processor - Enhanced with better validation and processing
 """
 
 import json
-import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, List
+from datetime import datetime
+from logger import bot_logger
 
 
 class CookieProcessor:
-    """Process and clean browser cookie exports for Twikit"""
-
-    # Essential cookies that Twikit needs for authentication
-    ESSENTIAL_COOKIES = {
-        "auth_token",  # Primary authentication token
-        "ct0",  # CSRF token
-        "auth_multi",  # Multi-factor authentication token
-        "guest_id",  # Guest identifier
-        "personalization_id",  # Personalization token
-        "kdt",  # Session token
-        "twid",  # Twitter user ID
-    }
-
+    """Process and validate Twitter cookies for Twikit"""
+    
+    # Required cookies for Twitter authentication
+    REQUIRED_COOKIES = ['auth_token', 'ct0']
+    
+    # Optional but recommended cookies
+    OPTIONAL_COOKIES = [
+        'guest_id',
+        'guest_id_ads',
+        'guest_id_marketing',
+        'personalization_id',
+        'kdt',
+        'twid',
+        'auth_multi'
+    ]
+    
+    # All possible cookie names we should handle
+    ALL_COOKIE_NAMES = REQUIRED_COOKIES + OPTIONAL_COOKIES
+    
     @staticmethod
-    def process_cookie_file(input_path: str, output_path: str = None) -> Dict[str, Any]:
+    def process_cookies(raw_cookies: Any) -> Dict[str, str]:
         """
-        Process a browser cookie export file to Twikit format
-
+        Process raw cookie data into Twikit format
+        
         Args:
-            input_path: Path to the raw cookie JSON file
-            output_path: Path to save the processed cookies (optional)
-
+            raw_cookies: Can be list (browser export) or dict (processed)
+            
         Returns:
-            Dict containing processed cookies
+            Dict of cookie name -> value
         """
         try:
-            # Read the raw cookie file
-            with open(input_path, "r", encoding="utf-8") as f:
-                raw_cookies = json.load(f)
-
-            # Process the cookies
-            processed_cookies = CookieProcessor.process_cookies(raw_cookies)
-
-            # Save processed cookies if output path provided
-            if output_path:
-                with open(output_path, "w", encoding="utf-8") as f:
-                    json.dump(processed_cookies, f, indent=2)
-                print(f"Processed cookies saved to: {output_path}")
-
-            return processed_cookies
-
+            if isinstance(raw_cookies, dict):
+                # Already processed or in key-value format
+                return CookieProcessor._process_dict_cookies(raw_cookies)
+            
+            elif isinstance(raw_cookies, list):
+                # Browser export format (array of cookie objects)
+                return CookieProcessor._process_list_cookies(raw_cookies)
+            
+            else:
+                bot_logger.error(f"Invalid cookie data type: {type(raw_cookies)}")
+                return {}
+                
         except Exception as e:
-            print(f"Error processing cookie file: {e}")
+            bot_logger.error(f"Failed to process cookies: {e}")
             return {}
-
+    
     @staticmethod
-    def process_cookies(raw_cookies: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Process raw cookie list to Twikit format with enhanced cleaning and validation
-
-        Args:
-            raw_cookies: List of raw cookie objects from browser export
-
-        Returns:
-            Dict with processed cookies in Twikit format
-        """
+    def _process_list_cookies(cookie_list: List[Dict[str, Any]]) -> Dict[str, str]:
+        """Process browser-exported cookie array"""
         processed = {}
-
-        for cookie in raw_cookies:
-            cookie_name = cookie.get("name", "").lower()
-
-            # Only include essential cookies
-            if cookie_name in CookieProcessor.ESSENTIAL_COOKIES:
-                cookie_value = cookie.get("value", "")
-
-                # Enhanced cookie value cleaning
-                cookie_value = CookieProcessor._clean_cookie_value(cookie_value)
-
-                processed[cookie_name] = cookie_value
-
-        return processed
-
-    @staticmethod
-    def _clean_cookie_value(value: str) -> str:
-        """Clean and normalize cookie values"""
-        if not value:
-            return value
-
-        # Remove quotes if present (both single and double)
-        value = value.strip()
-        if (value.startswith('"') and value.endswith('"')) or (
-            value.startswith("'") and value.endswith("'")
-        ):
-            value = value[1:-1]
-
-        # URL decode common patterns
-        if "u%3D" in value:
-            value = value.replace("u%3D", "u=")
-        if "v1%" in value:
-            value = value.replace("v1%", "v1%")
         
-        # Fix twid cookie format - remove "u=" prefix if present (both encoded and decoded)
-        if value.startswith("u="):
-            value = value[2:]  # Remove "u=" prefix
-        elif value.startswith("u%3D"):
-            value = value[4:]  # Remove "u%3D" prefix (URL encoded "u=")
-
-        return value
-
+        for cookie in cookie_list:
+            if not isinstance(cookie, dict):
+                continue
+            
+            # Get cookie name and value
+            name = cookie.get('name', '')
+            value = cookie.get('value', '')
+            
+            # Only include cookies we care about
+            if name in CookieProcessor.ALL_COOKIE_NAMES and value:
+                processed[name] = value
+                
+                # Log cookie info (without exposing full value)
+                bot_logger.debug(f"Processed cookie: {name} = {value[:10]}...")
+        
+        return processed
+    
     @staticmethod
-    def validate_cookies(cookies: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_dict_cookies(cookie_dict: Dict[str, Any]) -> Dict[str, str]:
+        """Process already-formatted cookie dictionary"""
+        processed = {}
+        
+        for name, value in cookie_dict.items():
+            # Only include cookies we care about
+            if name in CookieProcessor.ALL_COOKIE_NAMES and value:
+                # Ensure value is string
+                processed[name] = str(value)
+        
+        return processed
+    
+    @staticmethod
+    def validate_cookies(cookies: Dict[str, str]) -> Dict[str, Any]:
         """
-        Validate that required cookies are present and detect token mismatches
-
-        Args:
-            cookies: Processed cookies dict
-
+        Validate cookie data for Twitter authentication
+        
         Returns:
-            Dict with validation results including token mismatch detection
+            Dict with validation results
         """
         validation = {
-            "valid": True,
-            "missing": [],
-            "present": [],
-            "warnings": [],
-            "errors": [],
+            'valid': True,
+            'errors': [],
+            'warnings': [],
+            'missing': [],
+            'present': []
         }
-
-        # Required cookies for Twikit
-        required_cookies = ["auth_token", "ct0"]
-
-        for cookie_name in required_cookies:
-            if cookie_name in cookies and cookies[cookie_name]:
-                validation["present"].append(cookie_name)
+        
+        # Check required cookies
+        for cookie_name in CookieProcessor.REQUIRED_COOKIES:
+            if cookie_name not in cookies or not cookies[cookie_name]:
+                validation['valid'] = False
+                validation['missing'].append(cookie_name)
+                validation['errors'].append(f"Missing required cookie: {cookie_name}")
             else:
-                validation["missing"].append(cookie_name)
-                validation["valid"] = False
-
-        # Optional but recommended cookies
-        optional_cookies = [
-            "guest_id",
-            "personalization_id",
-            "kdt",
-            "twid",
-            "auth_multi",
-        ]
-        for cookie_name in optional_cookies:
-            if cookie_name in cookies and cookies[cookie_name]:
-                validation["present"].append(cookie_name)
+                validation['present'].append(cookie_name)
+                
+                # Validate cookie values
+                value = cookies[cookie_name]
+                
+                # Check auth_token format
+                if cookie_name == 'auth_token':
+                    if len(value) < 40:
+                        validation['valid'] = False
+                        validation['errors'].append(f"auth_token seems too short: {len(value)} chars")
+                    elif not value.replace('-', '').replace('_', '').isalnum():
+                        validation['warnings'].append("auth_token contains unexpected characters")
+                
+                # Check ct0 format
+                elif cookie_name == 'ct0':
+                    if len(value) < 32:
+                        validation['valid'] = False
+                        validation['errors'].append(f"ct0 seems too short: {len(value)} chars")
+        
+        # Check optional cookies
+        for cookie_name in CookieProcessor.OPTIONAL_COOKIES:
+            if cookie_name not in cookies or not cookies[cookie_name]:
+                validation['warnings'].append(f"Optional cookie missing: {cookie_name}")
             else:
-                validation["warnings"].append(f"Optional cookie missing: {cookie_name}")
-
-        # Token mismatch detection
-        if "auth_token" in cookies and "auth_multi" in cookies:
-            auth_token = cookies["auth_token"]
-            auth_multi = cookies["auth_multi"]
-
-            if auth_token and auth_multi:
-                # Extract token from auth_multi (format: user_id:token)
-                if ":" in auth_multi:
-                    user_id, auth_multi_token = auth_multi.split(":", 1)
-
-                    # Check if tokens match
-                    if auth_token != auth_multi_token:
-                        validation["valid"] = False
-                        validation["errors"].append(
-                            f"Token mismatch detected! "
-                            f"auth_token: {auth_token[:10]}... "
-                            f"auth_multi token: {auth_multi_token[:10]}... "
-                            f"These cookies are from different sessions!"
-                        )
-                    else:
-                        validation["warnings"].append(
-                            "✅ Token validation passed - cookies are from same session"
-                        )
-
+                validation['present'].append(cookie_name)
+        
+        # Additional validation: Check for token mismatch
+        if 'auth_token' in cookies and 'ct0' in cookies:
+            # Ensure both are present and non-empty
+            auth_token = cookies['auth_token']
+            ct0 = cookies['ct0']
+            
+            if not auth_token or not ct0:
+                validation['valid'] = False
+                validation['errors'].append("auth_token or ct0 is empty")
+        
+        # Log validation results
+        if validation['valid']:
+            bot_logger.info(f"Cookie validation passed: {len(validation['present'])} cookies present")
+        else:
+            bot_logger.error(f"Cookie validation failed: {validation['errors']}")
+        
         return validation
-
+    
     @staticmethod
-    def create_twikit_cookie_dict(cookies: Dict[str, Any]) -> Dict[str, str]:
+    def format_cookies_for_twikit(cookies: Dict[str, str]) -> Dict[str, str]:
         """
-        Create cookie dict in format expected by Twikit
-
-        Args:
-            cookies: Processed cookies dict
-
-        Returns:
-            Dict in Twikit cookie format
+        Format cookies specifically for Twikit's requirements
+        
+        Twikit expects a simple dict of cookie_name: cookie_value
         """
-        twikit_cookies = {}
-
+        formatted = {}
+        
         for name, value in cookies.items():
-            if name in CookieProcessor.ESSENTIAL_COOKIES:
-                twikit_cookies[name] = value
-
-        return twikit_cookies
-
+            if name in CookieProcessor.ALL_COOKIE_NAMES:
+                # Ensure value is a string and cleaned
+                formatted[name] = str(value).strip()
+        
+        return formatted
+    
     @staticmethod
-    def batch_process_cookies(
-        input_dir: str, output_dir: str = None
-    ) -> Dict[str, Dict[str, Any]]:
+    def extract_user_info_from_cookies(cookies: Dict[str, str]) -> Dict[str, Any]:
         """
-        Process multiple cookie files in a directory
-
-        Args:
-            input_dir: Directory containing raw cookie JSON files
-            output_dir: Directory to save processed cookies (optional)
-
+        Extract user information from cookies
+        
         Returns:
-            Dict mapping filenames to processed cookies
+            Dict with extracted user info
         """
-        if not os.path.exists(input_dir):
-            print(f"Input directory not found: {input_dir}")
+        user_info = {}
+        
+        # Extract user ID from twid cookie if present
+        if 'twid' in cookies:
+            twid = cookies['twid']
+            # Format: u%3D1234567890
+            if '%3D' in twid:
+                user_id = twid.split('%3D')[1]
+                user_info['user_id'] = user_id
+            elif '=' in twid:
+                user_id = twid.split('=')[1]
+                user_info['user_id'] = user_id
+        
+        # Add auth token info
+        if 'auth_token' in cookies:
+            user_info['auth_token_length'] = len(cookies['auth_token'])
+            user_info['auth_token_preview'] = cookies['auth_token'][:10] + "..."
+        
+        # Add ct0 info
+        if 'ct0' in cookies:
+            user_info['ct0_length'] = len(cookies['ct0'])
+            user_info['ct0_preview'] = cookies['ct0'][:10] + "..."
+        
+        return user_info
+    
+    @staticmethod
+    def check_cookie_freshness(cookies: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Check if cookies are likely still fresh
+        
+        Note: Without expiration dates, we can only do basic checks
+        """
+        freshness = {
+            'likely_fresh': True,
+            'warnings': []
+        }
+        
+        # Check if required cookies exist
+        if 'auth_token' not in cookies:
+            freshness['likely_fresh'] = False
+            freshness['warnings'].append("Missing auth_token - cookies expired or invalid")
+        
+        if 'ct0' not in cookies:
+            freshness['likely_fresh'] = False
+            freshness['warnings'].append("Missing ct0 - cookies expired or invalid")
+        
+        # Check cookie lengths (fresh cookies should have minimum lengths)
+        if 'auth_token' in cookies:
+            if len(cookies['auth_token']) < 40:
+                freshness['likely_fresh'] = False
+                freshness['warnings'].append("auth_token too short - may be corrupted")
+        
+        if 'ct0' in cookies:
+            if len(cookies['ct0']) < 32:
+                freshness['likely_fresh'] = False
+                freshness['warnings'].append("ct0 too short - may be corrupted")
+        
+        return freshness
+    
+    @staticmethod
+    def save_cookies_to_file(cookies: Dict[str, str], filepath: str) -> bool:
+        """Save cookies to a JSON file"""
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(cookies, f, indent=2)
+            bot_logger.info(f"Cookies saved to {filepath}")
+            return True
+        except Exception as e:
+            bot_logger.error(f"Failed to save cookies to {filepath}: {e}")
+            return False
+    
+    @staticmethod
+    def load_cookies_from_file(filepath: str) -> Dict[str, str]:
+        """Load cookies from a JSON file"""
+        try:
+            with open(filepath, 'r') as f:
+                raw_cookies = json.load(f)
+            
+            # Process cookies
+            processed = CookieProcessor.process_cookies(raw_cookies)
+            
+            bot_logger.info(f"Cookies loaded from {filepath}")
+            return processed
+            
+        except Exception as e:
+            bot_logger.error(f"Failed to load cookies from {filepath}: {e}")
             return {}
+    
+    @staticmethod
+    def compare_cookies(cookies1: Dict[str, str], cookies2: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Compare two sets of cookies to check if they're from the same account
+        
+        Returns:
+            Dict with comparison results
+        """
+        comparison = {
+            'same_account': False,
+            'differences': [],
+            'similarities': []
+        }
+        
+        # Compare auth_token (most important)
+        if cookies1.get('auth_token') == cookies2.get('auth_token'):
+            comparison['same_account'] = True
+            comparison['similarities'].append('Same auth_token')
+        else:
+            comparison['differences'].append('Different auth_token')
+        
+        # Compare user ID from twid
+        user1 = CookieProcessor.extract_user_info_from_cookies(cookies1)
+        user2 = CookieProcessor.extract_user_info_from_cookies(cookies2)
+        
+        if user1.get('user_id') == user2.get('user_id') and user1.get('user_id'):
+            comparison['similarities'].append(f"Same user ID: {user1.get('user_id')}")
+        elif user1.get('user_id') and user2.get('user_id'):
+            comparison['differences'].append(
+                f"Different user IDs: {user1.get('user_id')} vs {user2.get('user_id')}"
+            )
+        
+        return comparison
+    
+    @staticmethod
+    def sanitize_cookies_for_logging(cookies: Dict[str, str]) -> Dict[str, str]:
+        """
+        Create a sanitized version of cookies safe for logging
+        
+        Replaces sensitive values with previews
+        """
+        sanitized = {}
+        
+        for name, value in cookies.items():
+            if len(value) > 20:
+                # Show first 10 and last 5 characters
+                sanitized[name] = f"{value[:10]}...{value[-5:]}"
+            else:
+                sanitized[name] = f"{value[:5]}..."
+        
+        return sanitized
+    
+    @staticmethod
+    def create_cookie_report(cookies: Dict[str, str]) -> str:
+        """
+        Create a detailed report about the cookies
+        
+        Returns:
+            Formatted string report
+        """
+        report = []
+        report.append("🍪 Cookie Analysis Report")
+        report.append("=" * 50)
+        
+        # Validation
+        validation = CookieProcessor.validate_cookies(cookies)
+        report.append(f"\n✅ Valid: {validation['valid']}")
+        report.append(f"📊 Total Cookies: {len(cookies)}")
+        report.append(f"✓ Required Present: {len([c for c in CookieProcessor.REQUIRED_COOKIES if c in cookies])}/{len(CookieProcessor.REQUIRED_COOKIES)}")
+        report.append(f"✓ Optional Present: {len([c for c in CookieProcessor.OPTIONAL_COOKIES if c in cookies])}/{len(CookieProcessor.OPTIONAL_COOKIES)}")
+        
+        # User info
+        user_info = CookieProcessor.extract_user_info_from_cookies(cookies)
+        if user_info:
+            report.append("\n👤 User Information:")
+            for key, value in user_info.items():
+                report.append(f"   • {key}: {value}")
+        
+        # Freshness check
+        freshness = CookieProcessor.check_cookie_freshness(cookies)
+        report.append(f"\n🔄 Freshness: {'✅ Likely Fresh' if freshness['likely_fresh'] else '❌ Possibly Expired'}")
+        
+        # Errors and warnings
+        if validation['errors']:
+            report.append("\n❌ Errors:")
+            for error in validation['errors']:
+                report.append(f"   • {error}")
+        
+        if validation['warnings']:
+            report.append("\n⚠️ Warnings:")
+            for warning in validation['warnings']:
+                report.append(f"   • {warning}")
+        
+        # Cookie list
+        report.append("\n📋 Cookies Present:")
+        sanitized = CookieProcessor.sanitize_cookies_for_logging(cookies)
+        for name, value in sanitized.items():
+            report.append(f"   • {name}: {value}")
+        
+        report.append("\n" + "=" * 50)
+        
+        return "\n".join(report)
 
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
-        results = {}
-
-        for filename in os.listdir(input_dir):
-            if filename.endswith(".json"):
-                input_path = os.path.join(input_dir, filename)
-
-                output_path = None
-                if output_dir:
-                    output_filename = f"processed_{filename}"
-                    output_path = os.path.join(output_dir, output_filename)
-
-                processed = CookieProcessor.process_cookie_file(input_path, output_path)
-                results[filename] = processed
-
-        return results
+# Convenience functions
+def process_cookies(raw_cookies: Any) -> Dict[str, str]:
+    """Convenience wrapper for CookieProcessor.process_cookies"""
+    return CookieProcessor.process_cookies(raw_cookies)
 
 
-def main():
-    """Example usage of CookieProcessor"""
-
-    # Example: Process a single cookie file
-    raw_cookies = [
-        {
-            "name": "auth_token",
-            "value": "36b904ed14a7b5f46f4359dc76dd1785b21bf5ac",
-            "domain": ".x.com",
-            "hostOnly": False,
-            "path": "/",
-            "secure": True,
-            "httpOnly": True,
-            "sameSite": "no_restriction",
-            "session": False,
-            "expirationDate": 1794745406.824,
-        },
-        {
-            "name": "ct0",
-            "value": "a1c6170598ce04b321b9d8c91851b5007d480c9a77993852ca6c7c16b5e8d74e856dd62a5dafde24bcde13cefab5ce3bac53f5296fb7bd96705dbcec714bffb070595b7571bc780ec347d6d1b9f7a81d",
-            "domain": ".x.com",
-            "hostOnly": False,
-            "path": "/",
-            "secure": True,
-            "httpOnly": False,
-            "sameSite": "lax",
-            "session": False,
-            "expirationDate": 1794745407.136,
-        },
-    ]
-
-    # Process the cookies
-    processed = CookieProcessor.process_cookies(raw_cookies)
-    print("Processed cookies:", processed)
-
-    # Validate the cookies
-    validation = CookieProcessor.validate_cookies(processed)
-    print("Validation result:", validation)
-
-    # Create Twikit format
-    twikit_cookies = CookieProcessor.create_twikit_cookie_dict(processed)
-    print("Twikit format:", twikit_cookies)
-
-
-if __name__ == "__main__":
-    main()
+def validate_cookies(cookies: Dict[str, str]) -> Dict[str, Any]:
+    """Convenience wrapper for CookieProcessor.validate_cookies"""
+    return CookieProcessor.validate_cookies(cookies)
