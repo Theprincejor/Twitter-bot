@@ -28,6 +28,10 @@ class TwitterWorker:
         self.rate_limited_until = None
         self.captcha_required = False
         self.last_action_time = None
+        
+        # Twitter account info (will be populated during initialization)
+        self.twitter_user_id = None
+        self.twitter_username = None
 
     def _create_client_with_proxy(self):
         """Create Twikit client with proper proxy configuration"""
@@ -141,14 +145,34 @@ class TwitterWorker:
             # The cookies are set, and we'll verify auth when we perform actual actions
             self.logger.info(f"{self.bot_id}: ✅ Cookies loaded successfully")
             self.logger.info(f"{self.bot_id}: ✅ Using Bright Data proxy with SSL certificate")
-            self.logger.info(f"{self.bot_id}: Authentication will be verified on first action")
+            
+            # Try to get the user's Twitter ID and username
+            try:
+                # Extract Twitter user ID from cookies
+                self.twitter_user_id = None
+                self.twitter_username = None
+                
+                # Check if twid cookie exists (contains user ID)
+                if 'twid' in self.cookie_data:
+                    # Parse twid cookie: u=1234567890
+                    twid = self.cookie_data['twid']
+                    if twid.startswith('u='):
+                        self.twitter_user_id = twid.split('=')[1].split(';')[0]
+                        self.logger.info(f"{self.bot_id}: Extracted Twitter user ID: {self.twitter_user_id}")
+                
+                # If we couldn't get user ID from cookies, we'll get it later
+                if not self.twitter_user_id:
+                    self.logger.warning(f"{self.bot_id}: Could not extract user ID from cookies - will fetch on first action")
+                
+            except Exception as e:
+                self.logger.warning(f"{self.bot_id}: Error extracting user info: {e}")
             
             # Mark as logged in - real verification happens when performing actions
             self.is_logged_in = True
             
             try:
                 # Log available action methods for debugging
-                action_methods = [m for m in dir(self.client) if m.startswith(('create_', 'like_', 'retweet', 'quote'))]
+                action_methods = [m for m in dir(self.client) if m.startswith(('create_', 'like_', 'retweet', 'quote', 'follow'))]
                 self.logger.info(f"{self.bot_id}: Available action methods: {len(action_methods)} found")
                 
                 return True
@@ -586,7 +610,7 @@ class WorkerManager:
     async def _sync_mutual_following(self, new_bot_id: str = None):
         """Sync mutual following between bots - make all bots follow each other"""
         try:
-            self.logger.info(f"Starting mutual following sync for bot: {new_bot_id or 'all bots'}")
+            self.logger.info(f"🔄 Starting mutual following sync for bot: {new_bot_id or 'all bots'}")
             
             # Get all active workers
             all_workers = list(self.workers.values())
@@ -605,24 +629,42 @@ class WorkerManager:
                     self.logger.error(f"Bot {new_bot_id} not found")
                     return False
                 
-                # Get the new bot's Twitter user ID
-                # For now, we'll need to get each bot's username from their cookies
-                # This is a simplified version - in production you'd get user IDs
+                self.logger.info(f"Making {new_bot_id} follow all other bots and vice versa...")
                 
                 for worker in all_workers:
                     if worker.bot_id == new_bot_id:
                         continue
                     
                     try:
+                        # Get user IDs
+                        new_user_id = new_worker.twitter_user_id
+                        other_user_id = worker.twitter_user_id
+                        
+                        if not new_user_id or not other_user_id:
+                            self.logger.warning(f"Missing user IDs: {new_bot_id}={new_user_id}, {worker.bot_id}={other_user_id}")
+                            continue
+                        
                         # Make new bot follow this bot
-                        # Note: We need user IDs, not bot IDs
-                        # Since we don't have user IDs easily available, we'll log this
-                        self.logger.info(f"Would make {new_bot_id} follow {worker.bot_id}")
+                        try:
+                            await new_worker.follow_user(other_user_id)
+                            self.logger.info(f"✅ {new_bot_id} followed {worker.bot_id} (ID: {other_user_id})")
+                            follow_count += 1
+                            await asyncio.sleep(2)  # Rate limiting between follows
+                        except Exception as e:
+                            error_msg = f"Error: {new_bot_id} following {worker.bot_id}: {e}"
+                            self.logger.error(error_msg)
+                            errors.append(error_msg)
                         
                         # Make this bot follow the new bot
-                        self.logger.info(f"Would make {worker.bot_id} follow {new_bot_id}")
-                        
-                        follow_count += 2
+                        try:
+                            await worker.follow_user(new_user_id)
+                            self.logger.info(f"✅ {worker.bot_id} followed {new_bot_id} (ID: {new_user_id})")
+                            follow_count += 1
+                            await asyncio.sleep(2)  # Rate limiting between follows
+                        except Exception as e:
+                            error_msg = f"Error: {worker.bot_id} following {new_bot_id}: {e}"
+                            self.logger.error(error_msg)
+                            errors.append(error_msg)
                         
                     except Exception as e:
                         error_msg = f"Error in mutual follow between {new_bot_id} and {worker.bot_id}: {e}"
@@ -630,16 +672,39 @@ class WorkerManager:
                         errors.append(error_msg)
             else:
                 # Make all bots follow each other
+                self.logger.info(f"Making all {len(all_workers)} bots follow each other...")
+                
                 for i, worker1 in enumerate(all_workers):
                     for worker2 in all_workers[i+1:]:
                         try:
+                            user1_id = worker1.twitter_user_id
+                            user2_id = worker2.twitter_user_id
+                            
+                            if not user1_id or not user2_id:
+                                self.logger.warning(f"Missing user IDs: {worker1.bot_id}={user1_id}, {worker2.bot_id}={user2_id}")
+                                continue
+                            
                             # Bot 1 follows Bot 2
-                            self.logger.info(f"Would make {worker1.bot_id} follow {worker2.bot_id}")
+                            try:
+                                await worker1.follow_user(user2_id)
+                                self.logger.info(f"✅ {worker1.bot_id} followed {worker2.bot_id}")
+                                follow_count += 1
+                                await asyncio.sleep(2)
+                            except Exception as e:
+                                error_msg = f"Error: {worker1.bot_id} following {worker2.bot_id}: {e}"
+                                self.logger.error(error_msg)
+                                errors.append(error_msg)
                             
                             # Bot 2 follows Bot 1
-                            self.logger.info(f"Would make {worker2.bot_id} follow {worker1.bot_id}")
-                            
-                            follow_count += 2
+                            try:
+                                await worker2.follow_user(user1_id)
+                                self.logger.info(f"✅ {worker2.bot_id} followed {worker1.bot_id}")
+                                follow_count += 1
+                                await asyncio.sleep(2)
+                            except Exception as e:
+                                error_msg = f"Error: {worker2.bot_id} following {worker1.bot_id}: {e}"
+                                self.logger.error(error_msg)
+                                errors.append(error_msg)
                             
                         except Exception as e:
                             error_msg = f"Error in mutual follow between {worker1.bot_id} and {worker2.bot_id}: {e}"
@@ -648,14 +713,9 @@ class WorkerManager:
             
             if errors:
                 self.logger.warning(f"Mutual following completed with {len(errors)} errors")
-                self.logger.warning(f"Successful follows: {follow_count}, Errors: {len(errors)}")
+                self.logger.info(f"✅ Successful follows: {follow_count}, ❌ Errors: {len(errors)}")
             else:
-                self.logger.info(f"✅ Mutual following sync completed successfully - {follow_count} follow actions planned")
-            
-            # NOTE: This is currently logging what WOULD happen
-            # To actually implement follows, we need Twitter user IDs
-            # The bot cookies don't directly give us user IDs
-            # We'd need to call Twitter API to get user info first
+                self.logger.info(f"✅ Mutual following sync completed successfully - {follow_count} follow actions executed!")
             
             return True
             
