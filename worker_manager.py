@@ -146,21 +146,25 @@ class TwitterWorker:
             self.logger.info(f"{self.bot_id}: ✅ Cookies loaded successfully")
             self.logger.info(f"{self.bot_id}: ✅ Using Bright Data proxy with SSL certificate")
             
-            # Try to get the user's Twitter ID and username
+            # Try to get the user's Twitter ID from cookies
             try:
-                # Extract Twitter user ID from cookies
                 self.twitter_user_id = None
                 self.twitter_username = None
                 
-                # Get the Twitter user ID using twikit's user_id() method
-                try:
-                    self.twitter_user_id = await self.client.user_id()
-                    self.logger.info(f"{self.bot_id}: Retrieved Twitter user ID: {self.twitter_user_id}")
-                except Exception as e:
-                    self.logger.warning(f"{self.bot_id}: Could not retrieve user ID: {e}")
+                # Try to extract from twid cookie (format: u=1234567890)
+                if 'twid' in self.cookie_data:
+                    twid = self.cookie_data['twid']
+                    if 'u=' in twid:
+                        # Extract user ID from twid cookie
+                        self.twitter_user_id = twid.split('u=')[1].split(';')[0].split('|')[0]
+                        self.logger.info(f"{self.bot_id}: Extracted Twitter user ID from cookies: {self.twitter_user_id}")
+                
+                # If we couldn't get it from cookies, we'll fetch it on first action
+                if not self.twitter_user_id:
+                    self.logger.info(f"{self.bot_id}: User ID not in cookies - will fetch on first action")
                 
             except Exception as e:
-                self.logger.warning(f"{self.bot_id}: Error extracting user info: {e}")
+                self.logger.warning(f"{self.bot_id}: Error extracting user info from cookies: {e}")
             
             # Mark as logged in - real verification happens when performing actions
             self.is_logged_in = True
@@ -384,6 +388,20 @@ class TwitterWorker:
             "status": "active" if self._can_perform_action() else "limited",
             "proxy_configured": bool(Config.PROXY_URL),
         }
+
+    async def get_user_id(self) -> str:
+        """Get the Twitter user ID, fetching it if not already available"""
+        if self.twitter_user_id:
+            return self.twitter_user_id
+        
+        try:
+            # Fetch the user ID using twikit's user_id() method
+            self.twitter_user_id = await self.client.user_id()
+            self.logger.info(f"{self.bot_id}: Fetched Twitter user ID: {self.twitter_user_id}")
+            return self.twitter_user_id
+        except Exception as e:
+            self.logger.error(f"{self.bot_id}: Failed to fetch user ID: {e}")
+            return None
 
     async def cleanup(self):
         """Cleanup worker resources"""
@@ -631,9 +649,9 @@ class WorkerManager:
                         continue
                     
                     try:
-                        # Get user IDs
-                        new_user_id = new_worker.twitter_user_id
-                        other_user_id = worker.twitter_user_id
+                        # Get user IDs (fetch if not already available)
+                        new_user_id = await new_worker.get_user_id()
+                        other_user_id = await worker.get_user_id()
                         
                         if not new_user_id or not other_user_id:
                             self.logger.warning(f"Missing user IDs: {new_bot_id}={new_user_id}, {worker.bot_id}={other_user_id}")
@@ -672,8 +690,9 @@ class WorkerManager:
                 for i, worker1 in enumerate(all_workers):
                     for worker2 in all_workers[i+1:]:
                         try:
-                            user1_id = worker1.twitter_user_id
-                            user2_id = worker2.twitter_user_id
+                            # Get user IDs (fetch if not already available)
+                            user1_id = await worker1.get_user_id()
+                            user2_id = await worker2.get_user_id()
                             
                             if not user1_id or not user2_id:
                                 self.logger.warning(f"Missing user IDs: {worker1.bot_id}={user1_id}, {worker2.bot_id}={user2_id}")
