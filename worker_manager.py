@@ -129,13 +129,59 @@ class TwitterWorker:
                 # Twitter API requires this header for all write operations (follow, like, tweet, etc)
                 if 'ct0' in self.cookie_data:
                     csrf_token = self.cookie_data['ct0']
-                    # Access twikit's internal HTTP client and set the header
+                    header_set = False
+
+                    # Try multiple approaches to set the header (Twikit version compatibility)
+                    # Approach 1: Try _base_headers (older Twikit versions)
                     if hasattr(self.client, '_base_headers'):
                         self.client._base_headers['X-Csrf-Token'] = csrf_token
-                    elif hasattr(self.client, 'http'):
-                        # For newer twikit versions
+                        self.client._base_headers['x-csrf-token'] = csrf_token  # lowercase variant
+                        self.logger.info(f"{self.bot_id}: Set header via _base_headers")
+                        header_set = True
+
+                    # Approach 2: Try http.headers (some Twikit versions)
+                    if hasattr(self.client, 'http') and hasattr(self.client.http, 'headers'):
                         self.client.http.headers['X-Csrf-Token'] = csrf_token
-                    self.logger.info(f"{self.bot_id}: ✅ X-CSRF-Token header configured")
+                        self.client.http.headers['x-csrf-token'] = csrf_token
+                        self.logger.info(f"{self.bot_id}: Set header via http.headers")
+                        header_set = True
+
+                    # Approach 3: Try _client (httpx AsyncClient - Twikit 1.3.x)
+                    if hasattr(self.client, '_client'):
+                        if hasattr(self.client._client, 'headers'):
+                            self.client._client.headers['X-Csrf-Token'] = csrf_token
+                            self.client._client.headers['x-csrf-token'] = csrf_token
+                            self.logger.info(f"{self.bot_id}: Set header via _client.headers")
+                            header_set = True
+
+                    # Approach 4: Try request_client (alternative internal client name)
+                    if hasattr(self.client, 'request_client'):
+                        if hasattr(self.client.request_client, 'headers'):
+                            self.client.request_client.headers['X-Csrf-Token'] = csrf_token
+                            self.client.request_client.headers['x-csrf-token'] = csrf_token
+                            self.logger.info(f"{self.bot_id}: Set header via request_client.headers")
+                            header_set = True
+
+                    # Debug: Log all client attributes to help identify correct approach
+                    client_attrs = [attr for attr in dir(self.client) if not attr.startswith('__')]
+                    self.logger.info(f"{self.bot_id}: Available client attributes: {', '.join(client_attrs[:30])}")
+
+                    # Additional debug: Check internal client structure
+                    if hasattr(self.client, '_client'):
+                        internal_client_type = type(self.client._client).__name__
+                        self.logger.info(f"{self.bot_id}: Internal client type: {internal_client_type}")
+                        if hasattr(self.client._client, 'headers'):
+                            headers = dict(self.client._client.headers)
+                            header_keys = list(headers.keys())
+                            self.logger.info(f"{self.bot_id}: Current headers: {header_keys}")
+
+                    if header_set:
+                        self.logger.info(f"{self.bot_id}: ✅ X-CSRF-Token header configured (value: {csrf_token[:20]}...)")
+                    else:
+                        self.logger.warning(
+                            f"{self.bot_id}: ⚠️ Could not set X-CSRF-Token header - "
+                            f"tried all known methods. Write operations may fail."
+                        )
                 else:
                     self.logger.error(f"{self.bot_id}: ❌ ct0 cookie missing - write operations will fail!")
                 
