@@ -429,28 +429,33 @@ class TwitterWorker:
             return False
 
         try:
-            # retweet may return a Response object (not a coroutine) in some Twikit versions
-            result = await self.client.retweet(tweet_id)
-            self.last_action_time = datetime.now()
-            self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
-            return True
-        except TypeError as e:
-            # If it's not a coroutine, call it without await
-            if "can't be used in 'await' expression" in str(e):
+            # Method 1: Try fetching tweet first, then retweet (newer Twikit approach)
+            # This is more reliable as it gets the tweet object first
+            try:
+                tweet = await self.client.get_tweet_by_id(tweet_id)
+                result = await tweet.retweet()
+                self.last_action_time = datetime.now()
+                self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
+                return True
+            except Exception as fetch_error:
+                # Method 2: Fallback to direct client.retweet() method
+                self.logger.debug(f"{self.bot_id}: Fetch-then-retweet failed, trying direct method: {fetch_error}")
+
                 try:
-                    result = self.client.retweet(tweet_id)
+                    result = await self.client.retweet(tweet_id)
                     self.last_action_time = datetime.now()
-                    self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
+                    self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} (direct method)")
                     return True
-                except Exception as e2:
-                    self.logger.error(
-                        f"{self.bot_id}: Failed to retweet {tweet_id}: {e2}"
-                    )
-                    if "rate limit" in str(e2).lower():
-                        self.mark_rate_limited()
-                    return False
-            else:
-                raise
+                except TypeError as e:
+                    # If it's not a coroutine, call it without await
+                    if "can't be used in 'await' expression" in str(e):
+                        result = self.client.retweet(tweet_id)
+                        self.last_action_time = datetime.now()
+                        self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} (sync method)")
+                        return True
+                    else:
+                        raise
+
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e}")
 
