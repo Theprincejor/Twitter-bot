@@ -479,7 +479,8 @@ class TaskScheduler:
                 for task_id, task in self.active_tasks.items():
                     if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
                         # Keep completed tasks for 1 hour
-                        if current_time - task.completed_at > timedelta(hours=1):
+                        # Check if completed_at is set before comparing
+                        if task.completed_at and current_time - task.completed_at > timedelta(hours=1):
                             completed_tasks.append(task_id)
 
                 for task_id in completed_tasks:
