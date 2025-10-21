@@ -2435,6 +2435,40 @@ View recent system activity and logs:
         except Exception as e:
             return False, f"Error restarting service: {str(e)}", ""
 
+    async def _on_task_complete(self, task, success: bool, duration: float):
+        """Handle task completion notification"""
+        try:
+            # Format the notification message
+            if success:
+                status_icon = "✅"
+                status_text = "Success"
+            else:
+                status_icon = "❌"
+                status_text = "Failed"
+            
+            message = f"""{status_icon} **Task Completed!**
+
+📋 **Task**: `{task.id}`
+📊 **Type**: {task.task_type.value}
+⏱️ **Duration**: {duration:.1f}s
+🔄 **Status**: {status_text}
+📅 **Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+            
+            # Send to all admin users
+            for admin_id in self.config.TELEGRAM_ADMIN_IDS:
+                try:
+                    await self.application.bot.send_message(
+                        chat_id=int(admin_id),
+                        text=message,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    self.logger.error(f"Failed to send task notification to {admin_id}: {e}")
+                    
+        except Exception as e:
+            self.logger.error(f"Error in task completion callback: {e}")
+    
     async def check_system_status(self):
         """Check status of bot and services"""
         try:
@@ -2516,6 +2550,9 @@ View recent system activity and logs:
 
             # Start scheduler
             await self.scheduler.start()
+            
+            # Set task completion callback for notifications
+            self.scheduler.set_task_complete_callback(self._on_task_complete)
 
             # Start Telegram bot
             await self.application.initialize()

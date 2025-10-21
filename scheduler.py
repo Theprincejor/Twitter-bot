@@ -187,6 +187,9 @@ class TaskScheduler:
         self.task_queue: asyncio.Queue = asyncio.Queue(maxsize=Config.TASK_QUEUE_SIZE)
         self.active_tasks: Dict[str, Task] = {}
         self.is_running = False
+        
+        # Callback for task completion notifications
+        self.task_complete_callback: Optional[Callable] = None
 
         # Task handlers
         self.task_handlers: Dict[TaskType, Callable] = {
@@ -197,6 +200,10 @@ class TaskScheduler:
             TaskType.FOLLOW: self._handle_follow_task,
             TaskType.SYNC_FOLLOWS: self._handle_sync_follows_task,
         }
+    
+    def set_task_complete_callback(self, callback: Callable):
+        """Set callback function to be called when tasks complete"""
+        self.task_complete_callback = callback
 
     async def start(self):
         """Start the scheduler"""
@@ -308,7 +315,15 @@ class TaskScheduler:
                 if success:
                     task.status = TaskStatus.COMPLETED
                     task.completed_at = datetime.now()
-                    self.logger.info(f"Task {task.id} completed successfully")
+                    duration = (task.completed_at - task.created_at).total_seconds()
+                    self.logger.info(f"Task {task.id} completed successfully in {duration:.1f}s")
+                    
+                    # Send completion notification
+                    if self.task_complete_callback:
+                        try:
+                            await self.task_complete_callback(task, success=True, duration=duration)
+                        except Exception as e:
+                            self.logger.error(f"Error sending task completion notification: {e}")
                 else:
                     task.status = TaskStatus.FAILED
                     task.retry_count += 1
@@ -327,6 +342,13 @@ class TaskScheduler:
                         self.logger.error(
                             f"Task {task.id} failed after {task.max_retries} retries"
                         )
+                        
+                        # Send failure notification
+                        if self.task_complete_callback:
+                            try:
+                                await self.task_complete_callback(task, success=False, duration=0)
+                            except Exception as e:
+                                self.logger.error(f"Error sending task failure notification: {e}")
 
                 self.db.update_task_status(
                     int(task.id.split("_")[-1]), task.status.value
