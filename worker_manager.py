@@ -120,11 +120,24 @@ class TwitterWorker:
             self.logger.info(f"{self.bot_id}: Initializing worker with proxy support...")
             
             # Use set_cookies() which accepts dict format directly
-            # This properly configures all auth headers (especially X-CSRF-Token from ct0)
             if isinstance(self.cookie_data, dict):
-                # Twikit's set_cookies() takes a dict and sets up CSRF headers automatically
+                # Set cookies
                 self.client.set_cookies(self.cookie_data)
                 self.logger.info(f"{self.bot_id}: Cookies set via set_cookies() method")
+                
+                # CRITICAL: Manually set X-CSRF-Token header from ct0 cookie
+                # Twitter API requires this header for all write operations (follow, like, tweet, etc)
+                if 'ct0' in self.cookie_data:
+                    csrf_token = self.cookie_data['ct0']
+                    # Access twikit's internal HTTP client and set the header
+                    if hasattr(self.client, '_base_headers'):
+                        self.client._base_headers['X-Csrf-Token'] = csrf_token
+                    elif hasattr(self.client, 'http'):
+                        # For newer twikit versions
+                        self.client.http.headers['X-Csrf-Token'] = csrf_token
+                    self.logger.info(f"{self.bot_id}: ✅ X-CSRF-Token header configured")
+                else:
+                    self.logger.error(f"{self.bot_id}: ❌ ct0 cookie missing - write operations will fail!")
                 
                 # Log cookie details (sanitized)
                 from cookie_processor import CookieProcessor
