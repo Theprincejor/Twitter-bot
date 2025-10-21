@@ -2446,16 +2446,14 @@ View recent system activity and logs:
                 status_icon = "❌"
                 status_text = "Failed"
             
-            # Escape underscores in task ID for Markdown
-            task_id_escaped = task.id.replace('_', '\\_')
-            
-            message = f"""{status_icon} **Task Completed!**
+            # Use plain text to avoid Markdown parsing issues
+            message = f"""{status_icon} Task Completed!
 
-📋 **Task**: `{task_id_escaped}`
-📊 **Type**: {task.task_type.value}
-⏱️ **Duration**: {duration:.1f}s
-🔄 **Status**: {status_text}
-📅 **Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+📋 Task: {task.id}
+📊 Type: {task.task_type.value}
+⏱️ Duration: {duration:.1f}s
+🔄 Status: {status_text}
+📅 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
             
             # Send to all admin users
@@ -2467,8 +2465,7 @@ View recent system activity and logs:
                         
                     await self.application.bot.send_message(
                         chat_id=int(admin_id),
-                        text=message,
-                        parse_mode="Markdown"
+                        text=message
                     )
                 except ValueError:
                     # Invalid admin ID (not a number)
