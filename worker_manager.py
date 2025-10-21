@@ -436,7 +436,7 @@ class TwitterWorker:
 
             # Now retweet the tweet object
             try:
-                result = await tweet.retweet()
+                await tweet.retweet()
                 self.last_action_time = datetime.now()
                 self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully")
                 return True
