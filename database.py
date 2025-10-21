@@ -78,18 +78,23 @@ class Database:
                 with open(self.db_path, "rb") as f:
                     encrypted_data = f.read()
                 if encrypted_data:
-                    # Try to decrypt and parse the data
-                    self.cipher.decrypt(encrypted_data)
+                    # Try to decrypt and parse the data to validate
+                    decrypted = self.cipher.decrypt(encrypted_data)
+                    json.loads(decrypted)  # Validate JSON structure
+                    self.logger.debug("Database file validated successfully")
             except Exception as e:
-                self.logger.error(f"Database file is corrupted: {e}")
-                self.logger.info("Initializing database with default structure")
-                # Create a backup of the corrupted file
-                backup_path = f"{self.db_path}.corrupted"
-                try:
-                    os.rename(self.db_path, backup_path)
-                    self.logger.info(f"Corrupted database backed up to {backup_path}")
-                except Exception as backup_error:
-                    self.logger.error(f"Failed to backup corrupted database: {backup_error}")
+                # Only treat as corrupted if there's an actual error (not empty)
+                error_msg = str(e)
+                if error_msg and error_msg.strip():
+                    self.logger.error(f"Database file is corrupted: {e}")
+                    self.logger.info("Initializing database with default structure")
+                    # Create a backup of the corrupted file
+                    backup_path = f"{self.db_path}.corrupted"
+                    try:
+                        os.rename(self.db_path, backup_path)
+                        self.logger.info(f"Corrupted database backed up to {backup_path}")
+                    except Exception as backup_error:
+                        self.logger.error(f"Failed to backup corrupted database: {backup_error}")
                 
                 # Initialize with default data
                 default_data = {
