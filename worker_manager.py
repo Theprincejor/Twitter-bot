@@ -512,7 +512,7 @@ class WorkerManager:
             del self.workers[bot_id]
             
             # Remove from database
-            self.db.delete_bot(bot_id)
+            self.db.remove_bot(bot_id)
             
             self.logger.info(f"Worker {bot_id} removed successfully")
             return True
