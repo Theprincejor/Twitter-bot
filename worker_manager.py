@@ -137,6 +137,23 @@ class TwitterWorker:
             else:
                 self.logger.info(f"{self.bot_id}: No proxy configured - using VPS IP")
             
+            # Debug: Check what methods are available
+            self.logger.info(f"{self.bot_id}: DEBUG - Checking available client methods...")
+            available_methods = [method for method in dir(self.client) if not method.startswith('_')]
+            self.logger.info(f"{self.bot_id}: DEBUG - Available methods: {', '.join(available_methods[:20])}...")
+            
+            # Check if specific methods exist
+            has_user = hasattr(self.client, 'user')
+            has_get_user = hasattr(self.client, 'get_user')
+            has_get_user_by_screen_name = hasattr(self.client, 'get_user_by_screen_name')
+            has_get_home_timeline = hasattr(self.client, 'get_home_timeline')
+            
+            self.logger.info(f"{self.bot_id}: DEBUG - Methods check:")
+            self.logger.info(f"{self.bot_id}: DEBUG -   user(): {has_user}")
+            self.logger.info(f"{self.bot_id}: DEBUG -   get_user(): {has_get_user}")
+            self.logger.info(f"{self.bot_id}: DEBUG -   get_user_by_screen_name(): {has_get_user_by_screen_name}")
+            self.logger.info(f"{self.bot_id}: DEBUG -   get_home_timeline(): {has_get_home_timeline}")
+            
             # Verify authentication by getting user info
             # This uses the proxy automatically since the client was created with it
             try:
@@ -157,7 +174,7 @@ class TwitterWorker:
                     
             except Exception as e:
                 error_msg = str(e)
-                self.logger.error(f"{self.bot_id}: Authentication verification failed: {error_msg}")
+                self.logger.error(f"{self.bot_id}: Authentication setup failed: {error_msg}")
                 
                 # Check for specific errors
                 if "401" in error_msg or "Could not authenticate" in error_msg:
