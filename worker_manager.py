@@ -765,3 +765,44 @@ class WorkerManager:
         except Exception as e:
             self.logger.error(f"Error syncing mutual following: {e}")
             return False
+    
+    async def like_tweet_all(self, tweet_url: str):
+        """Make all active bots like a tweet"""
+        try:
+            # Extract tweet ID from URL
+            import re
+            tweet_id_match = re.search(r'/status/(\d+)', tweet_url)
+            if not tweet_id_match:
+                self.logger.error(f"Invalid tweet URL: {tweet_url}")
+                return {'success': 0, 'failed': 0, 'errors': ['Invalid tweet URL']}
+            
+            tweet_id = tweet_id_match.group(1)
+            self.logger.info(f"Making all bots like tweet: {tweet_id}")
+            
+            results = {'success': 0, 'failed': 0, 'errors': []}
+            
+            for bot_id, worker in self.workers.items():
+                try:
+                    success = await worker.like_tweet(tweet_id)
+                    if success:
+                        results['success'] += 1
+                        self.logger.info(f"✅ {bot_id} liked tweet {tweet_id}")
+                    else:
+                        results['failed'] += 1
+                        results['errors'].append(f"{bot_id}: Failed to like")
+                    
+                    # Rate limiting between likes
+                    await asyncio.sleep(2)
+                    
+                except Exception as e:
+                    results['failed'] += 1
+                    error_msg = f"{bot_id}: {str(e)}"
+                    results['errors'].append(error_msg)
+                    self.logger.error(f"❌ {bot_id} failed to like tweet: {e}")
+            
+            self.logger.info(f"Like task completed: {results['success']} succeeded, {results['failed']} failed")
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Error in like_tweet_all: {e}")
+            return {'success': 0, 'failed': 0, 'errors': [str(e)]}
