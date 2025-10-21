@@ -474,28 +474,15 @@ class TwitterWorker:
             return False
 
         try:
-            # WARMUP: Perform human-like activities before commenting to avoid error 226
+            # WARMUP: Add delay before commenting to appear more human-like
             import random
 
-            # 1. Fetch timeline (looks like browsing feed)
-            try:
-                self.logger.info(f"{self.bot_id}: Warming up - fetching timeline...")
-                await self.client.get_timeline(count=5)
-                await asyncio.sleep(random.uniform(1.0, 2.5))
-                self.logger.info(f"{self.bot_id}: ✅ Timeline fetched")
-            except Exception as warmup_error:
-                self.logger.warning(f"{self.bot_id}: Warmup timeline fetch failed: {warmup_error}")
+            # Simple warmup delay (3-6 seconds) - more complex warmup causes issues
+            warmup_delay = random.uniform(3.0, 6.0)
+            self.logger.info(f"{self.bot_id}: Warming up ({warmup_delay:.1f}s) before commenting...")
+            await asyncio.sleep(warmup_delay)
 
-            # 2. Get the tweet details (looks like reading before replying)
-            try:
-                self.logger.info(f"{self.bot_id}: Warming up - reading tweet {tweet_id}...")
-                _ = await self.client.get_tweet_by_id(tweet_id)
-                await asyncio.sleep(random.uniform(1.5, 3.0))
-                self.logger.info(f"{self.bot_id}: ✅ Tweet read successfully")
-            except Exception as read_error:
-                self.logger.warning(f"{self.bot_id}: Warmup tweet read failed: {read_error}")
-
-            # 3. Now post the comment
+            # Post the comment
             self.logger.info(f"{self.bot_id}: Posting comment: {text[:50]}...")
             await self.client.create_tweet(text=text, reply_to=tweet_id)
             self.last_action_time = datetime.now()
