@@ -152,17 +152,12 @@ class TwitterWorker:
                 self.twitter_user_id = None
                 self.twitter_username = None
                 
-                # Check if twid cookie exists (contains user ID)
-                if 'twid' in self.cookie_data:
-                    # Parse twid cookie: u=1234567890
-                    twid = self.cookie_data['twid']
-                    if twid.startswith('u='):
-                        self.twitter_user_id = twid.split('=')[1].split(';')[0]
-                        self.logger.info(f"{self.bot_id}: Extracted Twitter user ID: {self.twitter_user_id}")
-                
-                # If we couldn't get user ID from cookies, we'll get it later
-                if not self.twitter_user_id:
-                    self.logger.warning(f"{self.bot_id}: Could not extract user ID from cookies - will fetch on first action")
+                # Get the Twitter user ID using twikit's user_id() method
+                try:
+                    self.twitter_user_id = await self.client.user_id()
+                    self.logger.info(f"{self.bot_id}: Retrieved Twitter user ID: {self.twitter_user_id}")
+                except Exception as e:
+                    self.logger.warning(f"{self.bot_id}: Could not retrieve user ID: {e}")
                 
             except Exception as e:
                 self.logger.warning(f"{self.bot_id}: Error extracting user info: {e}")
