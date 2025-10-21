@@ -91,14 +91,14 @@ class TwitterAuthMonitor:
                 if cookie not in cookies or not cookies[cookie]:
                     return False, f"Missing {cookie}", 0
             
-            # Check auth_token format (should be a long string)
+            # Check auth_token format (should be a hex string, typically 40 chars)
             auth_token = cookies['auth_token']
-            if len(auth_token) < 50:
+            if len(auth_token) < 30:  # Minimum reasonable length
                 return False, "Invalid auth_token format", 0
-            
-            # Check ct0 format (should be a hex string)
+
+            # Check ct0 format (should be a long hex string, typically 64-128 chars)
             ct0 = cookies['ct0']
-            if len(ct0) != 32 or not all(c in '0123456789abcdef' for c in ct0.lower()):
+            if len(ct0) < 32:  # Minimum reasonable length
                 return False, "Invalid ct0 format", 0
             
             # Estimate expiry time (cookies typically last 24-48 hours)
