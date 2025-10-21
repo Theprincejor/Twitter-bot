@@ -582,3 +582,14 @@ class WorkerManager:
                 
         except Exception as e:
             self.logger.error(f"Error resuming rate limited workers: {e}")
+    
+    async def _sync_mutual_following(self, new_bot_id: str = None):
+        """Sync mutual following between bots (placeholder for future implementation)"""
+        try:
+            self.logger.info(f"Sync mutual following task called for bot: {new_bot_id or 'all'}")
+            # TODO: Implement mutual following sync logic
+            # This would make all bots follow each other to build engagement
+            return True
+        except Exception as e:
+            self.logger.error(f"Error syncing mutual following: {e}")
+            return False
