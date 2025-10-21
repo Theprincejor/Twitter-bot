@@ -119,10 +119,20 @@ class TwitterWorker:
         try:
             self.logger.info(f"{self.bot_id}: Initializing worker with proxy support...")
             
-            # Set cookies directly
+            # Save cookies to temporary file and load them properly
+            # This ensures twikit configures all auth headers correctly (especially X-CSRF-Token)
             if isinstance(self.cookie_data, dict):
-                self.client.set_cookies(self.cookie_data)
-                self.logger.info(f"{self.bot_id}: Cookies set successfully")
+                import json
+                import tempfile
+                
+                # Create a temporary cookie file for this bot
+                cookie_file = f"data/temp_{self.bot_id}_cookies.json"
+                with open(cookie_file, 'w') as f:
+                    json.dump(self.cookie_data, f)
+                
+                # Use load_cookies() which properly sets up authentication
+                self.client.load_cookies(cookie_file)
+                self.logger.info(f"{self.bot_id}: Cookies loaded via file method")
                 
                 # Log cookie details (sanitized)
                 from cookie_processor import CookieProcessor
@@ -132,7 +142,7 @@ class TwitterWorker:
                 self.logger.error(f"{self.bot_id}: Invalid cookie data format")
                 return False
             
-            # IMPORTANT: Wait a moment for cookies to be properly set
+            # IMPORTANT: Wait a moment for cookies to be properly loaded
             await asyncio.sleep(2)
             
             # Check what IP we're using (for debugging)
