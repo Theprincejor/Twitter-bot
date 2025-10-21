@@ -150,10 +150,10 @@ class TwitterBotTelegram:
     def _create_twikit_client(self, use_proxy=True):
         """
         Create a properly configured Twikit client with proxy support
-        
+
         Args:
             use_proxy: Whether to use proxy (default True for Twitter requests)
-        
+
         Returns:
             Configured Client instance
         """
@@ -162,7 +162,7 @@ class TwitterBotTelegram:
 
         # Get proxy configuration
         proxy_url = Config.PROXY_URL if use_proxy else None
-        
+
         # Get captcha solver if available
         captcha_solver_instance = None
         if Config.USE_CAPTCHA_SOLVER and Config.CAPSOLVER_API_KEY:
@@ -175,26 +175,54 @@ class TwitterBotTelegram:
                 )
             except ImportError:
                 self.logger.warning("Twikit Capsolver not available")
-        
+
         # Detect supported Client parameters
         client_sig = inspect.signature(Client.__init__)
         params = client_sig.parameters
-        
+
         # Build client kwargs
         client_kwargs = {
             'language': 'en-US'
         }
-        
+
         # Add proxy if supported and configured
         if 'proxy' in params and proxy_url:
             client_kwargs['proxy'] = proxy_url
-            self.logger.info(f"Using proxy: {proxy_url}")
-        
+            self.logger.info(f"Using proxy: {proxy_url[:50]}...")
+
+            # For residential proxies with SSL certificate issues, configure SSL settings
+            # This is necessary because residential proxies often use self-signed certificates
+            try:
+                import ssl
+
+                # Check if httpx_kwargs parameter is supported
+                if 'httpx_kwargs' in params:
+                    # Check if we have a custom SSL certificate for the proxy
+                    cert_path = Config.PROXY_SSL_CERT
+                    if cert_path and os.path.exists(cert_path):
+                        # Use the SSL certificate (e.g., Bright Data certificate)
+                        client_kwargs['httpx_kwargs'] = {
+                            'verify': cert_path
+                        }
+                        self.logger.info(f"Using SSL certificate: {cert_path}")
+                    else:
+                        # Use config setting
+                        client_kwargs['httpx_kwargs'] = {
+                            'verify': Config.PROXY_SSL_VERIFY
+                        }
+                        if not Config.PROXY_SSL_VERIFY:
+                            self.logger.info("SSL verification disabled for proxy")
+                        else:
+                            self.logger.info("SSL verification enabled for proxy")
+
+            except ImportError:
+                self.logger.warning("Could not configure SSL settings")
+
         # Add captcha solver if supported and configured
         if 'captcha_solver' in params and captcha_solver_instance:
             client_kwargs['captcha_solver'] = captcha_solver_instance
             self.logger.info("Captcha solver configured")
-        
+
         # Create client
         try:
             client = Client(**client_kwargs)
@@ -642,28 +670,62 @@ Bot Status:
 
         except Exception as e:
             error_msg = str(e)
+            error_type = type(e).__name__
+
+            # Log full error for debugging
+            self.logger.error(f"Login failed: {error_type}: {error_msg}")
+
             # Truncate long error messages for Telegram
             if len(error_msg) > 1000:
                 error_msg = error_msg[:1000] + "..."
 
-            # Check for specific error types
+            # Check for specific error types with better diagnostics
             if (
                 "403" in error_msg
                 or "Cloudflare" in error_msg
                 or "blocked" in error_msg
+                or "ssl" in error_msg.lower()
+                or "certificate" in error_msg.lower()
             ):
+                # Check if SSL cert exists
+                cert_exists = os.path.exists(Config.PROXY_SSL_CERT) if Config.PROXY_SSL_CERT else False
+
                 await update.message.reply_text(
-                    "❌ Login blocked by Cloudflare protection.\n"
-                    "This is common with automated login attempts.\n\n"
-                    "✅ Recommended: Use the cookie upload method instead:\n"
-                    "1. Export cookies from your browser\n"
-                    "2. Use /addbot or /addbotjson commands\n\n"
-                    "🔌 Proxy status: " + ('Configured' if Config.PROXY_URL else 'Not configured')
+                    "❌ Login blocked - Cloudflare/SSL issue detected.\n\n"
+                    f"🔍 Diagnostics:\n"
+                    f"• Proxy: {'✅ Configured' if Config.PROXY_URL else '❌ Not configured'}\n"
+                    f"• SSL Cert: {'✅ Found' if cert_exists else '❌ Missing'}\n"
+                    f"• Captcha Solver: {'✅ Enabled' if Config.USE_CAPTCHA_SOLVER else '❌ Disabled'}\n\n"
+                    "🔧 Try these solutions:\n"
+                    "1. Ensure SSL certificate is installed (check ssl_certs/ca.crt)\n"
+                    "2. Use cookie upload method: /addbotjson (RECOMMENDED)\n"
+                    "3. Enable captcha solver in config\n\n"
+                    f"📝 Error: {error_type}"
+                )
+            elif "401" in error_msg or "Could not authenticate" in error_msg:
+                await update.message.reply_text(
+                    "❌ Authentication failed - Invalid credentials.\n\n"
+                    "Possible causes:\n"
+                    "• Wrong username/password\n"
+                    "• Account locked or suspended\n"
+                    "• 2FA enabled (not supported)\n\n"
+                    "✅ RECOMMENDED: Use cookie method instead:\n"
+                    "1. Login to Twitter in browser with proxy\n"
+                    "2. Export cookies\n"
+                    "3. Use /addbotjson command"
+                )
+            elif "429" in error_msg or "rate limit" in error_msg.lower():
+                await update.message.reply_text(
+                    "❌ Rate limited by Twitter.\n\n"
+                    "Wait 15-30 minutes before trying again.\n"
+                    "Or use the cookie upload method: /addbotjson"
                 )
             else:
                 await update.message.reply_text(
-                    f"❌ Login error: {error_msg}\n"
-                    "Please check your credentials and try again."
+                    f"❌ Login failed: {error_type}\n\n"
+                    f"Error: {error_msg}\n\n"
+                    "💡 Tip: Cookie upload method is more reliable.\n"
+                    "Use /addbotjson to add bots via cookies."
                 )
 
     async def handle_cookie_upload(
