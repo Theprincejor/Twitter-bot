@@ -56,9 +56,11 @@ class TwitterWorker:
         client_sig = inspect.signature(Client.__init__)
         params = client_sig.parameters
         
-        # Build client kwargs
+        # Build client kwargs with proper User-Agent
+        # Use a realistic browser User-Agent that matches cookie export context
         client_kwargs = {
-            'language': 'en-US'
+            'language': 'en-US',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
         }
         
         # Add proxy if supported and configured
