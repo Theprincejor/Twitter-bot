@@ -61,6 +61,30 @@ class TwitterWorker:
         if 'proxy' in params and proxy_url:
             client_kwargs['proxy'] = proxy_url
             self.logger.info(f"{self.bot_id}: Using proxy: {proxy_url[:50]}...")
+            
+            # For residential proxies with SSL certificate issues, disable SSL verification
+            # This is necessary because residential proxies often use self-signed certificates
+            try:
+                import httpx
+                import ssl
+                
+                # Create SSL context that doesn't verify certificates
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                # Check if httpx_kwargs parameter is supported
+                if 'httpx_kwargs' in params:
+                    client_kwargs['httpx_kwargs'] = {
+                        'verify': Config.PROXY_SSL_VERIFY  # SSL verification based on config
+                    }
+                    if not Config.PROXY_SSL_VERIFY:
+                        self.logger.info(f"{self.bot_id}: SSL verification disabled for proxy")
+                    else:
+                        self.logger.info(f"{self.bot_id}: SSL verification enabled for proxy")
+                
+            except ImportError:
+                self.logger.warning(f"{self.bot_id}: Could not configure SSL settings")
         
         # Add captcha solver if supported and configured
         if 'captcha_solver' in params and captcha_solver_instance:

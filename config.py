@@ -46,6 +46,7 @@ class Config:
     
     # Proxy configuration
     PROXY_URL = os.getenv("PROXY_URL", "")
+    PROXY_SSL_VERIFY = os.getenv("PROXY_SSL_VERIFY", "false").lower() == "true"
 
     @classmethod
     def validate_config(cls) -> Dict[str, Any]:
