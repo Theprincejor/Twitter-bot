@@ -346,10 +346,26 @@ class TwitterWorker:
             return False
         
         try:
-            await self.client.follow_user(user_id)
+            # follow_user returns a Response object, not a coroutine
+            result = await self.client.follow_user(user_id)
             self.last_action_time = datetime.now()
             self.logger.info(f"{self.bot_id}: Followed user {user_id}")
             return True
+        except TypeError as e:
+            # If it's not a coroutine, call it without await
+            if "can't be used in 'await' expression" in str(e):
+                try:
+                    result = self.client.follow_user(user_id)
+                    self.last_action_time = datetime.now()
+                    self.logger.info(f"{self.bot_id}: Followed user {user_id}")
+                    return True
+                except Exception as e2:
+                    self.logger.error(f"{self.bot_id}: Failed to follow user {user_id}: {e2}")
+                    if "rate limit" in str(e2).lower():
+                        self.mark_rate_limited()
+                    return False
+            else:
+                raise
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to follow user {user_id}: {e}")
             
