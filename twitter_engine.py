@@ -418,12 +418,18 @@ class TwitterEngagementEngine:
         """Get engagement statistics"""
         db_stats = self.db.get_statistics()
 
+        # Calculate total actions, filtering out None values
+        total_actions = 0
+        if isinstance(db_stats, dict):
+            total_actions = sum(
+                v for v in db_stats.values() 
+                if isinstance(v, (int, float)) and v is not None
+            )
+
         return {
             "engine_stats": self.stats,
             "database_stats": db_stats,
-            "total_actions": sum(db_stats.values())
-            if isinstance(db_stats, dict)
-            else 0,
+            "total_actions": total_actions,
         }
 
     async def cleanup_old_data(self, days: int = 7):
