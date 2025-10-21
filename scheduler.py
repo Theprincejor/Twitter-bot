@@ -374,9 +374,11 @@ class TaskScheduler:
         results = await self.worker_manager.like_tweet_all(tweet_url)
         self.rate_limiter.record_like_action()
 
-        success_count = sum(1 for success in results.values() if success)
+        # results format: {"success": 2, "failed": 0, "errors": []}
+        success_count = results.get("success", 0)
+        total_bots = success_count + results.get("failed", 0)
         self.logger.info(
-            f"Like task completed: {success_count}/{len(results)} bots successful"
+            f"Like task completed: {success_count}/{total_bots} bots successful"
         )
 
         return success_count > 0
@@ -395,9 +397,11 @@ class TaskScheduler:
         results = await self.worker_manager.comment_all(tweet_url, comments)
         self.rate_limiter.record_comment_action()
 
-        success_count = sum(1 for success in results.values() if success)
+        # results format: {"success": 2, "failed": 0, "errors": []}
+        success_count = results.get("success", 0)
+        total_bots = success_count + results.get("failed", 0)
         self.logger.info(
-            f"Comment task completed: {success_count}/{len(results)} bots successful"
+            f"Comment task completed: {success_count}/{total_bots} bots successful"
         )
 
         return success_count > 0
@@ -414,9 +418,11 @@ class TaskScheduler:
         results = await self.worker_manager.retweet_all(tweet_url)
         self.rate_limiter.record_retweet_action()
 
-        success_count = sum(1 for success in results.values() if success)
+        # results format: {"success": 2, "failed": 0, "errors": []}
+        success_count = results.get("success", 0)
+        total_bots = success_count + results.get("failed", 0)
         self.logger.info(
-            f"Retweet task completed: {success_count}/{len(results)} bots successful"
+            f"Retweet task completed: {success_count}/{total_bots} bots successful"
         )
 
         return success_count > 0
@@ -438,9 +444,11 @@ class TaskScheduler:
         )
         self.rate_limiter.record_quote_action()
 
-        success_count = sum(1 for success in results.values() if success)
+        # results format: {"success": 2, "failed": 0, "errors": []}
+        success_count = results.get("success", 0)
+        total_bots = success_count + results.get("failed", 0)
         self.logger.info(
-            f"Quote task completed: {success_count}/{len(results)} bots successful"
+            f"Quote task completed: {success_count}/{total_bots} bots successful"
         )
 
         return success_count > 0
