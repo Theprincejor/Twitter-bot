@@ -429,25 +429,29 @@ class TwitterWorker:
             return False
 
         try:
-            # Method 1: Try fetching tweet first, then retweet (newer Twikit approach)
-            # This is more reliable as it gets the tweet object first
-            tweet = await self.client.get_tweet_by_id(tweet_id)
-            self.logger.debug(f"{self.bot_id}: Successfully fetched tweet {tweet_id}")
-
-            # Now retweet the tweet object
+            # Try using the direct client.retweet() method instead of fetching tweet first
+            # The fetch-then-retweet approach has issues with certain tweet formats
             try:
-                await tweet.retweet()
+                await self.client.retweet(tweet_id)
                 self.last_action_time = datetime.now()
                 self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully")
                 return True
-            except Exception as retweet_error:
-                # Check if it's a 404 error (already retweeted)
-                error_str = str(retweet_error)
-                if "404" in error_str or "already" in error_str.lower():
-                    self.logger.info(f"{self.bot_id}: Tweet {tweet_id} already retweeted (404)")
-                    return True  # Consider it a success if already retweeted
+            except TypeError:
+                # If it's not async, try without await
+                self.client.retweet(tweet_id)
+                self.last_action_time = datetime.now()
+                self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} successfully (sync)")
+                return True
+            except Exception as direct_error:
+                # If direct method fails with 404, tweet might already be retweeted
+                error_str = str(direct_error)
+                if "404" in error_str:
+                    self.logger.info(f"{self.bot_id}: Tweet {tweet_id} already retweeted or not found")
+                    return True  # Consider it success if already retweeted
                 else:
-                    raise  # Re-raise other errors
+                    # If direct method fails for other reasons, log and fail
+                    self.logger.warning(f"{self.bot_id}: Direct retweet failed: {direct_error}")
+                    raise
 
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e}")
