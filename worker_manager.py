@@ -431,30 +431,14 @@ class TwitterWorker:
         try:
             # Method 1: Try fetching tweet first, then retweet (newer Twikit approach)
             # This is more reliable as it gets the tweet object first
-            try:
-                tweet = await self.client.get_tweet_by_id(tweet_id)
-                result = await tweet.retweet()
-                self.last_action_time = datetime.now()
-                self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
-                return True
-            except Exception as fetch_error:
-                # Method 2: Fallback to direct client.retweet() method
-                self.logger.debug(f"{self.bot_id}: Fetch-then-retweet failed, trying direct method: {fetch_error}")
+            tweet = await self.client.get_tweet_by_id(tweet_id)
+            self.logger.debug(f"{self.bot_id}: Successfully fetched tweet {tweet_id}")
 
-                try:
-                    result = await self.client.retweet(tweet_id)
-                    self.last_action_time = datetime.now()
-                    self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} (direct method)")
-                    return True
-                except TypeError as e:
-                    # If it's not a coroutine, call it without await
-                    if "can't be used in 'await' expression" in str(e):
-                        result = self.client.retweet(tweet_id)
-                        self.last_action_time = datetime.now()
-                        self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id} (sync method)")
-                        return True
-                    else:
-                        raise
+            # Now retweet the tweet object
+            result = await tweet.retweet()
+            self.last_action_time = datetime.now()
+            self.logger.info(f"{self.bot_id}: Retweeted tweet {tweet_id}")
+            return True
 
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to retweet {tweet_id}: {e}")
