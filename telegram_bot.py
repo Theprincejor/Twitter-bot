@@ -2446,9 +2446,12 @@ View recent system activity and logs:
                 status_icon = "❌"
                 status_text = "Failed"
             
+            # Escape underscores in task ID for Markdown
+            task_id_escaped = task.id.replace('_', '\\_')
+            
             message = f"""{status_icon} **Task Completed!**
 
-📋 **Task**: `{task.id}`
+📋 **Task**: `{task_id_escaped}`
 📊 **Type**: {task.task_type.value}
 ⏱️ **Duration**: {duration:.1f}s
 🔄 **Status**: {status_text}
@@ -2458,11 +2461,18 @@ View recent system activity and logs:
             # Send to all admin users
             for admin_id in self.config.TELEGRAM_ADMIN_IDS:
                 try:
+                    # Skip if admin_id is empty or invalid
+                    if not admin_id or not admin_id.strip():
+                        continue
+                        
                     await self.application.bot.send_message(
                         chat_id=int(admin_id),
                         text=message,
                         parse_mode="Markdown"
                     )
+                except ValueError:
+                    # Invalid admin ID (not a number)
+                    self.logger.warning(f"Invalid admin ID: {admin_id}")
                 except Exception as e:
                     self.logger.error(f"Failed to send task notification to {admin_id}: {e}")
                     
