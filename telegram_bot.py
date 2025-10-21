@@ -546,7 +546,8 @@ Bot Status:
             temp_client = self._create_twikit_client(use_proxy=True)
 
             # Add delay to appear more human-like
-            await asyncio.sleep(asyncio.uniform(2, 5))
+            import random
+            await asyncio.sleep(random.uniform(2, 5))
 
             # Check if cookies_file parameter is supported
             import inspect
