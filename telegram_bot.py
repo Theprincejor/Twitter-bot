@@ -267,6 +267,11 @@ Choose an action from the menu below:
 • `/update` - Interactive update menu (update & restart, restart only, restart system, check status)
 • `/restart` - Restart bot without updating code
 
+👥 Admin Management:
+• `/addadmin <user_id>` - Add a new admin (get ID from @userinfobot)
+• `/removeadmin <user_id>` - Remove an admin
+• `/listadmins` - Show all admins
+
 🎯 Engagement Commands:
 • `/post <url>` - Like, comment, and retweet a specific post
 • `/like <url>` - Like a specific post
