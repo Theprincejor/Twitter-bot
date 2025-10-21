@@ -36,9 +36,9 @@ class TwitterBotTelegram:
     def __init__(self):
         self.config = Config
         self.db = Database()
-        self.worker_manager = WorkerManager(self.db)
-        self.scheduler = TaskScheduler(self.worker_manager, self.db)
         self.search_engine = TwitterSearchEngine(self.db)
+        self.worker_manager = WorkerManager(self.db, self.search_engine)
+        self.scheduler = TaskScheduler(self.worker_manager, self.db)
         self.engagement_engine = TwitterEngagementEngine(self.db, self.search_engine)
         self.logger = bot_logger
 

@@ -612,8 +612,9 @@ class TwitterWorker:
 class WorkerManager:
     """Manages multiple Twitter bot workers with proxy support"""
 
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, search_engine=None):
         self.db = db
+        self.search_engine = search_engine
         self.workers: Dict[str, TwitterWorker] = {}
         self.logger = bot_logger
         self.is_running = False
@@ -1080,8 +1081,8 @@ class WorkerManager:
             self.logger.error(f"Error in retweet_all: {e}")
             return {"success": 0, "failed": 0, "errors": [str(e)]}
 
-    async def comment_all(self, tweet_url: str, comments: List[str]):
-        """Make all active bots comment on a tweet"""
+    async def comment_all(self, tweet_url: str, comments: List[str] = None):
+        """Make all active bots comment on a tweet with human-like NFT comments"""
         try:
             # Extract tweet ID from URL
             import re
@@ -1099,8 +1100,14 @@ class WorkerManager:
 
             for bot_id, worker in self.workers.items():
                 try:
-                    # Select a random comment for this bot
-                    comment_text = random.choice(comments) if comments else "Great post!"
+                    # Use NFT comments for more human-like behavior
+                    if self.search_engine and hasattr(self.search_engine, 'get_random_nft_comment'):
+                        comment_text = self.search_engine.get_random_nft_comment()
+                        self.logger.info(f"{bot_id}: Using NFT comment: {comment_text[:50]}...")
+                    elif comments:
+                        comment_text = random.choice(comments)
+                    else:
+                        comment_text = "Great post!"
 
                     success = await worker.comment_on_tweet(tweet_id, comment_text)
                     if success:
@@ -1110,8 +1117,10 @@ class WorkerManager:
                         results["failed"] += 1
                         results["errors"].append(f"{bot_id}: Failed to comment")
 
-                    # Rate limiting between comments
-                    await asyncio.sleep(3)
+                    # Human-like random delay between comments (2-5 seconds)
+                    delay = random.uniform(2.0, 5.0)
+                    self.logger.info(f"{bot_id}: Waiting {delay:.1f}s before next comment...")
+                    await asyncio.sleep(delay)
 
                 except Exception as e:
                     results["failed"] += 1
