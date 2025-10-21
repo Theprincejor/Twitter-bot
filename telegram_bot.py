@@ -141,6 +141,11 @@ class TwitterBotTelegram:
         # Update and restart commands
         self.application.add_handler(CommandHandler("update", self.update_command))
         self.application.add_handler(CommandHandler("restart", self.restart_command))
+        
+        # Admin management commands
+        self.application.add_handler(CommandHandler("addadmin", self.addadmin_command))
+        self.application.add_handler(CommandHandler("removeadmin", self.removeadmin_command))
+        self.application.add_handler(CommandHandler("listadmins", self.listadmins_command))
 
     def _create_twikit_client(self, use_proxy=True):
         """
@@ -1914,6 +1919,101 @@ Bot Status:
         except Exception as e:
             await update.message.reply_text(f"❌ Error restarting bot: {str(e)}")
 
+    async def addadmin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /addadmin command to add a new admin"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide a Telegram user ID.\n"
+                "Usage: `/addadmin <user_id>`\n\n"
+                "To get a user ID, forward a message from the user to @userinfobot"
+            )
+            return
+
+        try:
+            new_admin_id = context.args[0]
+            if self.db.add_admin(new_admin_id):
+                await update.message.reply_text(
+                    f"✅ Successfully added admin: {new_admin_id}\n"
+                    f"They can now use bot commands."
+                )
+            else:
+                await update.message.reply_text(
+                    f"⚠️ Admin {new_admin_id} already exists."
+                )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error adding admin: {str(e)}")
+
+    async def removeadmin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /removeadmin command to remove an admin"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide a Telegram user ID.\n"
+                "Usage: `/removeadmin <user_id>`"
+            )
+            return
+
+        try:
+            admin_id = context.args[0]
+            
+            # Prevent removing yourself if you're the last admin
+            admins = self.db.get_admins()
+            if admin_id == str(update.effective_user.id) and len(admins) == 1:
+                await update.message.reply_text(
+                    "❌ Cannot remove yourself - you are the last admin!"
+                )
+                return
+            
+            if self.db.remove_admin(admin_id):
+                await update.message.reply_text(
+                    f"✅ Successfully removed admin: {admin_id}"
+                )
+            else:
+                await update.message.reply_text(
+                    f"⚠️ Admin {admin_id} not found."
+                )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error removing admin: {str(e)}")
+
+    async def listadmins_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /listadmins command to list all admins"""
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text("❌ Access denied. You are not an admin.")
+            return
+
+        try:
+            admins = self.db.get_admins()
+            env_admins = Config.TELEGRAM_ADMIN_IDS
+            
+            message = "👥 **Admin List**\n\n"
+            
+            if env_admins:
+                message += "📋 **From .env file:**\n"
+                for admin in env_admins:
+                    if admin:  # Skip empty strings
+                        message += f"• {admin}\n"
+                message += "\n"
+            
+            if admins:
+                message += "💾 **From database:**\n"
+                for admin in admins:
+                    message += f"• {admin}\n"
+            else:
+                message += "💾 **From database:** None\n"
+            
+            message += f"\n📊 **Total admins:** {len(set(env_admins + admins))}"
+            
+            await update.message.reply_text(message)
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error listing admins: {str(e)}")
+
     async def _handle_single_action(
         self,
         update: Update,
@@ -1948,8 +2048,14 @@ Bot Status:
             )
 
     def _is_admin(self, user_id: int) -> bool:
-        """Check if user is admin"""
-        return str(user_id) in self.config.TELEGRAM_ADMIN_IDS
+        """Check if user is admin (from .env or database)"""
+        user_id_str = str(user_id)
+        # Check .env file admins
+        if user_id_str in self.config.TELEGRAM_ADMIN_IDS:
+            return True
+        # Check database admins
+        db_admins = self.db.get_admins()
+        return user_id_str in db_admins
 
     def _validate_cookie_data(self, cookie_data: Dict[str, Any]) -> bool:
         """Validate cookie data structure"""
@@ -2868,8 +2974,14 @@ View detailed system statistics:
             await update.message.reply_text(f"❌ Error scheduling {action_name}: {str(e)}")
 
     def _is_admin(self, user_id: int) -> bool:
-        """Check if user is admin"""
-        return str(user_id) in self.config.TELEGRAM_ADMIN_IDS
+        """Check if user is admin (from .env or database)"""
+        user_id_str = str(user_id)
+        # Check .env file admins
+        if user_id_str in self.config.TELEGRAM_ADMIN_IDS:
+            return True
+        # Check database admins
+        db_admins = self.db.get_admins()
+        return user_id_str in db_admins
 
     def _process_raw_cookies(self, raw_cookie_data: List[Dict]) -> Dict[str, str]:
         """Process raw cookie data from browser export"""

@@ -59,6 +59,7 @@ class Database:
                 "bots": {},
                 "users_pool": {},
                 "tasks": [],
+                "admins": [],  # List of Telegram admin IDs
                 "settings": {
                     "mutual_following": True,
                     "auto_engagement": True,
@@ -447,3 +448,55 @@ class Database:
         except Exception as e:
             self.logger.error(f"Failed to backup database: {e}")
             return False
+
+    def add_admin(self, admin_id: str) -> bool:
+        """Add an admin to the database"""
+        try:
+            data = self._read_data()
+            if "admins" not in data:
+                data["admins"] = []
+            
+            admin_id = str(admin_id)  # Ensure it's a string
+            if admin_id not in data["admins"]:
+                data["admins"].append(admin_id)
+                self._write_data(data)
+                self.logger.info(f"Added admin {admin_id}")
+                return True
+            else:
+                self.logger.warning(f"Admin {admin_id} already exists")
+                return False
+        except Exception as e:
+            self.logger.error(f"Failed to add admin {admin_id}: {e}")
+            return False
+
+    def remove_admin(self, admin_id: str) -> bool:
+        """Remove an admin from the database"""
+        try:
+            data = self._read_data()
+            if "admins" not in data:
+                data["admins"] = []
+            
+            admin_id = str(admin_id)  # Ensure it's a string
+            if admin_id in data["admins"]:
+                data["admins"].remove(admin_id)
+                self._write_data(data)
+                self.logger.info(f"Removed admin {admin_id}")
+                return True
+            else:
+                self.logger.warning(f"Admin {admin_id} not found")
+                return False
+        except Exception as e:
+            self.logger.error(f"Failed to remove admin {admin_id}: {e}")
+            return False
+
+    def get_admins(self) -> List[str]:
+        """Get all admins from the database"""
+        try:
+            data = self._read_data()
+            if "admins" not in data:
+                data["admins"] = []
+                self._write_data(data)
+            return data.get("admins", [])
+        except Exception as e:
+            self.logger.error(f"Failed to get admins: {e}")
+            return []
