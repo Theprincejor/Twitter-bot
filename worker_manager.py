@@ -468,16 +468,38 @@ class TwitterWorker:
             return False
 
     async def comment_on_tweet(self, tweet_id: str, text: str) -> bool:
-        """Comment on a tweet"""
+        """Comment on a tweet with human-like warmup activity"""
         if not self._can_perform_action():
             self.logger.warning(f"{self.bot_id}: Cannot perform action")
             return False
 
         try:
+            # WARMUP: Perform human-like activities before commenting to avoid error 226
+            import random
+
+            # 1. Fetch home timeline (looks like browsing)
+            try:
+                self.logger.info(f"{self.bot_id}: Warming up - fetching timeline...")
+                await self.client.get_home_timeline(count=5)
+                await asyncio.sleep(random.uniform(1.0, 2.5))
+            except Exception as warmup_error:
+                self.logger.warning(f"{self.bot_id}: Warmup timeline fetch failed: {warmup_error}")
+
+            # 2. Get the tweet details (looks like reading before replying)
+            try:
+                self.logger.info(f"{self.bot_id}: Warming up - reading tweet {tweet_id}...")
+                await self.client.get_tweet_by_id(tweet_id)
+                await asyncio.sleep(random.uniform(1.5, 3.0))
+            except Exception as read_error:
+                self.logger.warning(f"{self.bot_id}: Warmup tweet read failed: {read_error}")
+
+            # 3. Now post the comment
+            self.logger.info(f"{self.bot_id}: Posting comment: {text[:50]}...")
             await self.client.create_tweet(text=text, reply_to=tweet_id)
             self.last_action_time = datetime.now()
-            self.logger.info(f"{self.bot_id}: Commented on tweet {tweet_id}")
+            self.logger.info(f"{self.bot_id}: ✅ Successfully commented on tweet {tweet_id}")
             return True
+
         except Exception as e:
             self.logger.error(f"{self.bot_id}: Failed to comment on {tweet_id}: {e}")
 
