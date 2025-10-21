@@ -415,7 +415,7 @@ class WorkerManager:
                 return False
             
             # Add to database first
-            if not self.db.save_bot(bot_id, cookie_data):
+            if not self.db.add_bot(bot_id, cookie_data):
                 self.logger.error(f"Failed to add {bot_id} to database")
                 return False
             
