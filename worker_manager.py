@@ -492,7 +492,7 @@ class WorkerManager:
             
             for bot_id, bot_info in all_bots.items():
                 if bot_info.get("status") == "active":
-                    cookie_data = bot_info.get("cookie_data", {})
+                    cookie_data = bot_info.get("cookies", {})
                     
                     # Create and initialize worker
                     worker = TwitterWorker(bot_id, cookie_data, self.db)

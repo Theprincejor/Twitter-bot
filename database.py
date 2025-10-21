@@ -219,7 +219,7 @@ class Database:
 
             bot_info = {
                 "id": bot_id,
-                "cookie_data": cookie_data,
+                "cookies": cookie_data,
                 "status": "active",
                 "added_at": None,  # Will be set by caller
                 "last_activity": None,
