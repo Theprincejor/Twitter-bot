@@ -2,6 +2,7 @@
 Database management with JSON file storage and encryption
 """
 
+
 import json
 import os
 import base64
