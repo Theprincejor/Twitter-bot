@@ -26,7 +26,8 @@ class TwitterAuthMonitor:
         self.logger = bot_logger
         self.project_path = "/root/Twitter-bot"
         self.db_path = os.path.join(self.project_path, "data", "database.json")
-        self.database = Database(self.db_path)
+        # Use default Config paths and encryption key
+        self.database = Database()
         
         # Monitoring intervals
         self.check_interval = 300  # Check every 5 minutes
