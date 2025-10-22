@@ -1148,8 +1148,17 @@ class WorkerManager:
             self.logger.error(f"Error in comment_all: {e}")
             return {"success": 0, "failed": 0, "errors": [str(e)]}
 
-    async def quote_tweet_all(self, tweet_url: str, quote_text: str, keyword: str):
-        """Make all active bots quote tweet with mentions from keyword pool"""
+    async def quote_tweet_all(self, tweet_url: str, keyword: str):
+        """
+        Quote tweet with keyword search workflow:
+        1. Search for 100 latest tweets with keyword
+        2. Extract usernames (skip duplicates)
+        3. Each bot quotes with keyword + 3 @mentions
+        4. 20 minute delay between each bot
+        5. Continue until 100 unique users mentioned
+        6. Auto-fetch more tweets if users run out
+        7. Cycle through bots until target reached
+        """
         try:
             # Extract tweet ID from URL
             import re
@@ -1160,39 +1169,125 @@ class WorkerManager:
                 return {"success": 0, "failed": 0, "errors": ["Invalid tweet URL"]}
 
             tweet_id = tweet_id_match.group(1)
-            self.logger.info(f"Making all bots quote tweet: {tweet_id}")
+            self.logger.info(f"🚀 Starting quote campaign for keyword '{keyword}' on tweet {tweet_id}")
 
-            results = {"success": 0, "failed": 0, "errors": []}
+            # Initialize tracking
+            target_users = 100
+            users_per_quote = 3
+            mentioned_users = []  # Track all mentioned users
+            available_users = []  # Pool of users to mention
 
-            for bot_id, worker in self.workers.items():
+            results = {
+                "success": 0,
+                "failed": 0,
+                "errors": [],
+                "total_users_mentioned": 0,
+                "quotes_posted": 0
+            }
+
+            # Helper function to fetch more users
+            async def fetch_more_users():
+                nonlocal available_users
+
+                self.logger.info(f"🔍 Searching for 100 latest tweets with keyword '{keyword}'...")
+
+                # Search for 100 latest tweets
+                tweets = await self.search_engine.search_tweets_by_keyword(keyword, limit=100)
+
+                if not tweets:
+                    self.logger.error(f"No tweets found for keyword '{keyword}'")
+                    return False
+
+                # Extract usernames
+                new_users = await self.search_engine.extract_users_from_tweets(tweets)
+
+                # Filter out already mentioned users (skip duplicates)
+                unique_new_users = [u for u in new_users if u not in mentioned_users]
+
+                available_users.extend(unique_new_users)
+                self.logger.info(f"✅ Found {len(unique_new_users)} new unique users (total pool: {len(available_users)})")
+
+                return len(unique_new_users) > 0
+
+            # Main quote loop
+            bot_ids = list(self.workers.keys())
+            bot_index = 0
+
+            while len(mentioned_users) < target_users:
+                # Fetch more users if pool is low
+                if len(available_users) < users_per_quote:
+                    self.logger.info(f"⚠️ User pool low ({len(available_users)} users), fetching more...")
+                    if not await fetch_more_users():
+                        self.logger.error("Failed to fetch more users, stopping campaign")
+                        break
+
+                # Check if we still don't have enough users
+                if len(available_users) < users_per_quote:
+                    self.logger.warning(f"Only {len(available_users)} users available, not enough for quote")
+                    break
+
+                # Get next bot (cycle through)
+                if bot_index >= len(bot_ids):
+                    bot_index = 0
+
+                bot_id = bot_ids[bot_index]
+                worker = self.workers[bot_id]
+
+                # Get 3 users from pool
+                users_to_mention = available_users[:users_per_quote]
+                available_users = available_users[users_per_quote:]  # Remove used users
+
+                # Build quote text: keyword + @mentions
+                mention_text = " ".join([f"@{user}" for user in users_to_mention])
+                full_quote = f"{keyword} {mention_text}".strip()
+
+                self.logger.info(f"🤖 {bot_id} quoting with: {full_quote}")
+
+                # Post quote tweet
                 try:
-                    # Get users to mention from pool (max 3 per quote)
-                    mentions = self.db.get_users_from_pool(keyword, 3) if keyword else []
-
-                    # Build quote text with mentions
-                    mention_text = " ".join([f"@{user}" for user in mentions])
-                    full_quote = f"{quote_text} {mention_text}".strip()
-
                     success = await worker.quote_tweet(tweet_id, full_quote)
+
                     if success:
                         results["success"] += 1
-                        self.logger.info(f"✅ {bot_id} quoted tweet {tweet_id}")
+                        results["quotes_posted"] += 1
+                        mentioned_users.extend(users_to_mention)
+                        results["total_users_mentioned"] = len(mentioned_users)
+
+                        self.logger.info(
+                            f"✅ {bot_id} posted quote #{results['quotes_posted']} "
+                            f"({len(mentioned_users)}/{target_users} users mentioned)"
+                        )
+
+                        # 20 minute delay before next quote (except for last one)
+                        if len(mentioned_users) < target_users:
+                            delay_seconds = 20 * 60  # 20 minutes
+                            self.logger.info("⏳ Waiting 20 minutes before next quote...")
+                            await asyncio.sleep(delay_seconds)
                     else:
                         results["failed"] += 1
                         results["errors"].append(f"{bot_id}: Failed to quote")
-
-                    # Rate limiting between quotes
-                    await asyncio.sleep(3)
+                        # Put users back in pool if quote failed
+                        available_users = users_to_mention + available_users
 
                 except Exception as e:
                     results["failed"] += 1
                     error_msg = f"{bot_id}: {str(e)}"
                     results["errors"].append(error_msg)
-                    self.logger.error(f"❌ {bot_id} failed to quote tweet: {e}")
+                    self.logger.error(f"❌ {bot_id} failed to quote: {e}")
+                    # Put users back in pool
+                    available_users = users_to_mention + available_users
 
+                # Move to next bot
+                bot_index += 1
+
+            # Final summary
             self.logger.info(
-                f"Quote task completed: {results['success']} succeeded, {results['failed']} failed"
+                f"🎉 Quote campaign completed!\n"
+                f"   Quotes posted: {results['quotes_posted']}\n"
+                f"   Users mentioned: {results['total_users_mentioned']}/{target_users}\n"
+                f"   Success: {results['success']}, Failed: {results['failed']}"
             )
+
             return results
 
         except Exception as e:

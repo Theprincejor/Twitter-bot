@@ -1015,54 +1015,63 @@ Bot Status:
             )
 
     async def quote_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /quote command"""
+        """
+        Handle /quote command
+        Usage: /quote <keyword> <tweet_url>
+
+        Starts a quote campaign that:
+        1. Searches for 100 latest tweets with keyword
+        2. Extracts unique usernames
+        3. Each bot quotes the tweet with keyword + 3 @mentions
+        4. 20 minute delay between quotes
+        5. Continues until 100 unique users mentioned
+        6. Auto-fetches more tweets if needed
+        """
         if not self._is_admin(update.effective_user.id):
             await update.message.reply_text("❌ Access denied. You are not an admin.")
             return
 
         if len(context.args) < 2:
             await update.message.reply_text(
-                "❌ Please provide keyword and message.\n"
-                'Usage: `/quote keyword "message text"`',
+                "❌ Please provide keyword and tweet URL.\n"
+                "Usage: `/quote <keyword> <tweet_url>`\n\n"
+                "Example: `/quote NFT https://x.com/user/status/123`\n\n"
+                "This will:\n"
+                "• Search 100 latest tweets with keyword\n"
+                "• Quote with keyword + 3 @mentions per bot\n"
+                "• 20 min delays between quotes\n"
+                "• Continue until 100 users mentioned"
             )
             return
 
         keyword = context.args[0]
-        message = " ".join(context.args[1:])
+        tweet_url = context.args[1]
 
-        # Remove quotes if present
-        if message.startswith('"') and message.endswith('"'):
-            message = message[1:-1]
+        # Validate URL
+        if "/status/" not in tweet_url:
+            await update.message.reply_text(
+                "❌ Invalid tweet URL. Must contain '/status/'"
+            )
+            return
 
         try:
-            # Build user pool first
-            await update.message.reply_text(
-                f"🔍 Building user pool for keyword: {keyword}"
-            )
-
-            pool_built = await self.search_engine.build_user_pool_for_keyword(keyword)
-
-            if not pool_built:
-                await update.message.reply_text(
-                    f"❌ Failed to build user pool for keyword: {keyword}"
-                )
-                return
-
             # Add quote task
             task_id = await self.scheduler.add_task(
                 TaskType.QUOTE,
                 {
                     "keyword": keyword,
-                    "quote_text": message,
-                    "mention_count": Config.MAX_MENTIONS_PER_QUOTE,
+                    "tweet_url": tweet_url,
                 },
             )
 
             await update.message.reply_text(
                 f"✅ Quote campaign scheduled!\n\n"
                 f"🔑 Keyword: {keyword}\n"
-                f"💬 Message: {message}\n"
-                f"📋 Task ID: {task_id}"
+                f"🔗 URL: {tweet_url}\n"
+                f"📋 Task ID: {task_id}\n\n"
+                f"⏱️ Campaign will run for ~10 hours (20min delays)\n"
+                f"🎯 Target: 100 unique users mentioned\n"
+                f"📊 Progress updates will be logged"
             )
 
         except Exception as e:

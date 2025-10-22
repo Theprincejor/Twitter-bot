@@ -428,30 +428,30 @@ class TaskScheduler:
         return success_count > 0
 
     async def _handle_quote_task(self, task: Task) -> bool:
-        """Handle quote task"""
+        """Handle quote task - runs full campaign until 100 users mentioned"""
         if not self.rate_limiter.can_perform_quote():
             return False
 
         tweet_url = task.payload.get("tweet_url")
-        quote_text = task.payload.get("quote_text")
         keyword = task.payload.get("keyword")
 
-        if not all([tweet_url, quote_text, keyword]):
+        if not all([tweet_url, keyword]):
             return False
 
-        results = await self.worker_manager.quote_tweet_all(
-            tweet_url, quote_text, keyword
-        )
+        # This will run the full quote campaign (potentially hours due to 20min delays)
+        results = await self.worker_manager.quote_tweet_all(tweet_url, keyword)
         self.rate_limiter.record_quote_action()
 
-        # results format: {"success": 2, "failed": 0, "errors": []}
-        success_count = results.get("success", 0)
-        total_bots = success_count + results.get("failed", 0)
+        # results format: {"success": N, "failed": N, "quotes_posted": N, "total_users_mentioned": N}
+        quotes_posted = results.get("quotes_posted", 0)
+        users_mentioned = results.get("total_users_mentioned", 0)
+
         self.logger.info(
-            f"Quote task completed: {success_count}/{total_bots} bots successful"
+            f"Quote campaign completed: {quotes_posted} quotes posted, "
+            f"{users_mentioned} users mentioned"
         )
 
-        return success_count > 0
+        return quotes_posted > 0
 
     async def _handle_follow_task(self, task: Task) -> bool:
         """Handle follow task"""

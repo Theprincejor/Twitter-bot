@@ -90,31 +90,67 @@ class TwitterSearchEngine:
             return []
 
     async def _perform_search(self, keyword: str, limit: int) -> List[Dict[str, Any]]:
-        """Perform the actual search (placeholder implementation)"""
-        # Note: This is a simplified implementation
-        # In a real scenario, you would need to use Twitter API v2 or web scraping
+        """Perform the actual search using Twikit search_tweet"""
+        try:
+            # Get a client from the database (use first active bot)
+            bots = self.db.get_all_data().get('bots', {})
+            client = None
 
-        # For now, return mock data structure
-        # You would replace this with actual Twitter search logic
-        mock_tweets = []
+            for bot_id, bot_data in bots.items():
+                if bot_data.get('status') == 'active':
+                    from worker_manager import TwitterWorker
+                    # Create a temporary worker to get authenticated client
+                    worker = TwitterWorker(bot_id, bot_data.get('cookies', {}), self.db)
+                    if await worker.initialize():
+                        client = worker.client
+                        break
 
-        # Example structure of what a tweet object should contain
-        for i in range(min(limit, 10)):  # Limit to 10 for demo
-            mock_tweet = {
-                "id": f"mock_tweet_{i}",
-                "text": f"This is a mock tweet containing the keyword: {keyword}",
-                "author": {
-                    "username": f"mock_user_{i}",
-                    "screen_name": f"mock_user_{i}",
-                    "id": f"mock_user_id_{i}",
-                },
-                "created_at": datetime.now().isoformat(),
-                "url": f"https://twitter.com/mock_user_{i}/status/mock_tweet_{i}",
-                "metrics": {"retweet_count": 0, "like_count": 0, "reply_count": 0},
-            }
-            mock_tweets.append(mock_tweet)
+            if not client:
+                self.logger.error("No active bot available for search")
+                return []
 
-        return mock_tweets
+            # Search for latest tweets using Twikit
+            # Twikit limits to 20 tweets per request, so we need to paginate
+            all_tweets = []
+            cursor = None
+
+            while len(all_tweets) < limit:
+                tweets_needed = min(20, limit - len(all_tweets))
+
+                try:
+                    result = await client.search_tweet(keyword, product='Latest', count=tweets_needed, cursor=cursor)
+
+                    # Convert Twikit Tweet objects to dict format
+                    for tweet in result:
+                        tweet_dict = {
+                            "id": tweet.id,
+                            "text": tweet.text,
+                            "author": {
+                                "username": tweet.user.screen_name,
+                                "screen_name": tweet.user.screen_name,
+                                "id": tweet.user.id,
+                            },
+                            "created_at": tweet.created_at if hasattr(tweet, 'created_at') else datetime.now().isoformat(),
+                            "url": f"https://twitter.com/{tweet.user.screen_name}/status/{tweet.id}",
+                        }
+                        all_tweets.append(tweet_dict)
+
+                    # Check if there are more results
+                    if hasattr(result, 'next_cursor') and result.next_cursor and len(all_tweets) < limit:
+                        cursor = result.next_cursor
+                    else:
+                        break
+
+                except Exception as e:
+                    self.logger.error(f"Error fetching tweets batch: {e}")
+                    break
+
+            self.logger.info(f"Found {len(all_tweets)} tweets for keyword '{keyword}'")
+            return all_tweets[:limit]  # Ensure we don't exceed limit
+
+        except Exception as e:
+            self.logger.error(f"Search failed: {e}")
+            return []
 
     async def extract_users_from_tweets(
         self, tweets: List[Dict[str, Any]]
