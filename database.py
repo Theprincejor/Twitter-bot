@@ -53,7 +53,9 @@ class Database:
         """Initialize database with default structure"""
         # Use the database initializer to ensure the database file is valid
         if not os.path.exists(self.db_path) or os.path.getsize(self.db_path) == 0:
-            self.logger.info("Database file doesn't exist or is empty. Creating new database.")
+            self.logger.info(
+                "Database file doesn't exist or is empty. Creating new database."
+            )
             default_data = {
                 "bots": {},
                 "users_pool": {},
@@ -93,10 +95,14 @@ class Database:
                     backup_path = f"{self.db_path}.corrupted"
                     try:
                         os.rename(self.db_path, backup_path)
-                        self.logger.info(f"Corrupted database backed up to {backup_path}")
+                        self.logger.info(
+                            f"Corrupted database backed up to {backup_path}"
+                        )
                     except Exception as backup_error:
-                        self.logger.error(f"Failed to backup corrupted database: {backup_error}")
-                
+                        self.logger.error(
+                            f"Failed to backup corrupted database: {backup_error}"
+                        )
+
                 # Initialize with default data
                 default_data = {
                     "bots": {},
@@ -121,7 +127,9 @@ class Database:
         """Read and decrypt database data"""
         try:
             if not os.path.exists(self.db_path):
-                self.logger.warning("Database file doesn't exist. Creating new database.")
+                self.logger.warning(
+                    "Database file doesn't exist. Creating new database."
+                )
                 self._init_database()
                 return {}
 
@@ -129,7 +137,9 @@ class Database:
                 encrypted_data = f.read()
 
             if not encrypted_data:
-                self.logger.warning("Database file is empty. Initializing with default structure.")
+                self.logger.warning(
+                    "Database file is empty. Initializing with default structure."
+                )
                 self._init_database()
                 return {}
 
@@ -139,57 +149,71 @@ class Database:
                     return json.loads(decrypted_data.decode())
                 except json.JSONDecodeError as json_error:
                     self.logger.error(f"JSON parsing error: {json_error}")
-                    
+
                     # Check if it's the specific error we're looking for
                     if "Expecting value: line 1 column 1 (char 0)" in str(json_error):
-                        self.logger.warning("Database file contains invalid JSON. Initializing with default structure.")
-                        
+                        self.logger.warning(
+                            "Database file contains invalid JSON. Initializing with default structure."
+                        )
+
                         # Create a backup of the corrupted file
                         backup_path = f"{self.db_path}.json_error"
                         try:
                             os.rename(self.db_path, backup_path)
-                            self.logger.info(f"Corrupted database backed up to {backup_path}")
+                            self.logger.info(
+                                f"Corrupted database backed up to {backup_path}"
+                            )
                         except Exception as backup_error:
-                            self.logger.error(f"Failed to backup corrupted database: {backup_error}")
-                        
+                            self.logger.error(
+                                f"Failed to backup corrupted database: {backup_error}"
+                            )
+
                         # Initialize with default structure
                         self._init_database()
-                    
+
                     return {}
             except Exception as decrypt_error:
                 self.logger.error(f"Failed to decrypt database: {decrypt_error}")
-                self.logger.warning("Database file is corrupted. Initializing with default structure.")
-                
+                self.logger.warning(
+                    "Database file is corrupted. Initializing with default structure."
+                )
+
                 # Create a backup of the corrupted file
                 backup_path = f"{self.db_path}.decrypt_error"
                 try:
                     os.rename(self.db_path, backup_path)
                     self.logger.info(f"Corrupted database backed up to {backup_path}")
                 except Exception as backup_error:
-                    self.logger.error(f"Failed to backup corrupted database: {backup_error}")
-                
+                    self.logger.error(
+                        f"Failed to backup corrupted database: {backup_error}"
+                    )
+
                 # Initialize with default structure
                 self._init_database()
                 return {}
 
         except Exception as e:
             self.logger.error(f"Failed to read database: {e}")
-            
+
             # Check if it's the specific error we're looking for
             if "Expecting value: line 1 column 1 (char 0)" in str(e):
-                self.logger.warning("Database file contains invalid JSON. Initializing with default structure.")
-                
+                self.logger.warning(
+                    "Database file contains invalid JSON. Initializing with default structure."
+                )
+
                 # Create a backup of the corrupted file
                 backup_path = f"{self.db_path}.error"
                 try:
                     os.rename(self.db_path, backup_path)
                     self.logger.info(f"Corrupted database backed up to {backup_path}")
                 except Exception as backup_error:
-                    self.logger.error(f"Failed to backup corrupted database: {backup_error}")
-                
+                    self.logger.error(
+                        f"Failed to backup corrupted database: {backup_error}"
+                    )
+
                 # Initialize with default structure
                 self._init_database()
-            
+
             return {}
 
     def _write_data(self, data: Dict[str, Any]):
@@ -262,12 +286,44 @@ class Database:
     def get_bot(self, bot_id: str) -> Optional[Dict[str, Any]]:
         """Get bot information"""
         data = self._read_data()
-        return data.get("bots", {}).get(bot_id)
+
+        # Ensure data is a dictionary
+        if not isinstance(data, dict):
+            self.logger.error(
+                f"Database data is not a dictionary: {type(data)}. Cannot get bot."
+            )
+            return None
+
+        # Get bots from data, ensuring it's a dictionary
+        bots = data.get("bots", {})
+        if not isinstance(bots, dict):
+            self.logger.error(
+                f"Bots data is not a dictionary: {type(bots)}. Cannot get bot."
+            )
+            return None
+
+        return bots.get(bot_id)
 
     def get_all_bots(self) -> Dict[str, Any]:
         """Get all bots"""
         data = self._read_data()
-        return data.get("bots", {})
+
+        # Ensure data is a dictionary
+        if not isinstance(data, dict):
+            self.logger.error(
+                f"Database data is not a dictionary: {type(data)}. Initializing with empty bots."
+            )
+            return {}
+
+        # Get bots from data, ensuring it's a dictionary
+        bots = data.get("bots", {})
+        if not isinstance(bots, dict):
+            self.logger.error(
+                f"Bots data is not a dictionary: {type(bots)}. Returning empty dict."
+            )
+            return {}
+
+        return bots
 
     def update_bot_status(self, bot_id: str, status: str, **kwargs) -> bool:
         """Update bot status and other properties"""
@@ -454,7 +510,7 @@ class Database:
             data = self._read_data()
             if "admins" not in data:
                 data["admins"] = []
-            
+
             admin_id = str(admin_id)  # Ensure it's a string
             if admin_id not in data["admins"]:
                 data["admins"].append(admin_id)
@@ -474,7 +530,7 @@ class Database:
             data = self._read_data()
             if "admins" not in data:
                 data["admins"] = []
-            
+
             admin_id = str(admin_id)  # Ensure it's a string
             if admin_id in data["admins"]:
                 data["admins"].remove(admin_id)

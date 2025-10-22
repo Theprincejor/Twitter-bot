@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix login authentication with proxy SSL certificate support\n\n- Added SSL certificate configuration to _create_twikit_client method\n- Now properly uses Bright Data SSL certificate (ssl_certs/ca.crt) for proxy authentication\n- Improved error handling with detailed diagnostics for login failures\n- Better error messages distinguishing between Cloudflare blocks, auth failures, and rate limits\n- Matches the working SSL configuration from worker_manager.py\n\nThis should fix the Cloudflare bypass for /addbotlogin command.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(pip show:*)",
+      "Bash(pip3 show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
