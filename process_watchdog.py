@@ -56,16 +56,17 @@ class ProcessWatchdog:
                 'restart_delay': 15,
                 'max_restarts': 3,
                 'restart_window': 600
-            },
-            'auth_monitor': {
-                'name': 'auth_monitor.py',
-                'service': 'auth-monitor.service',
-                'port': None,
-                'health_endpoint': None,
-                'restart_delay': 20,
-                'max_restarts': 3,
-                'restart_window': 600
             }
+            # DISABLED - Auth monitor causes false positives and deactivates bots
+            # 'auth_monitor': {
+            #     'name': 'auth_monitor.py',
+            #     'service': 'auth-monitor.service',
+            #     'port': None,
+            #     'health_endpoint': None,
+            #     'restart_delay': 20,
+            #     'max_restarts': 3,
+            #     'restart_window': 600
+            # }
         }
         
         # Monitoring intervals

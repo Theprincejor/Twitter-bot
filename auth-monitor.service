@@ -8,7 +8,9 @@ Type=simple
 User=root
 WorkingDirectory=/root/Twitter-bot
 ExecStart=/usr/bin/python3 auth_monitor.py
-Restart=always
+# DISABLED - Auth monitor causes false positives and deactivates bots
+# Restart=always
+Restart=no
 RestartSec=30
 StandardOutput=journal
 StandardError=journal
